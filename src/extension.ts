@@ -3,28 +3,21 @@ import cp = require('child_process');
 import util = require('util');
 
 export async function activate(context: vscode.ExtensionContext) {
-	const execFile = util.promisify(cp.execFile);
-
-	// Read the list of targets from TinyGo.
-	try {
-		const {stdout, stderr} = await execFile('tinygo', ['targets']);
-		var targets = stdout.trimRight().split('\n');
-	} catch(err) {
-		vscode.window.showErrorMessage('Could not list TinyGo targets:\n' + err);
-		return;
-	}
-
-	// Sort targets by most recently used.
-	let history = context.globalState.get<string[]>('history') || [];
-	for (let i=history.length-1; i >= 0; i--) {
-		if (targets.indexOf(history[i]) < 0)
-			continue;
-		moveElementToFront(targets, history[i]);
-	}
+	let targets: string[] | null;
 
 	// Register the command, _after_ the list of targets has been read. This
 	// makes sure the user will never see an empty list.
 	let disposable = vscode.commands.registerCommand('vscode-tinygo.selectTarget', async () => {
+		// Load targets (if not already loaded).
+		if (!targets) {
+			targets = await readTargetList(context);
+		}
+		if (!targets) {
+			// Failed to load the list of targets.
+			// An error message has already been shown by readTargetList.
+			return;
+		}
+
 		// Pick a target from the list.
 		const target = await vscode.window.showQuickPick(targets, {
 			placeHolder: 'pick a target...',
@@ -35,6 +28,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		let goroot = '';
 		let buildTags = '';
 		try {
+			const execFile = util.promisify(cp.execFile);
 			const {stdout, stderr} = await execFile('tinygo', ['info', target]);
 			stdout.trimRight().split('\n').forEach(line => {
 				let colonPos = line.indexOf(':');
@@ -75,6 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		moveElementToFront(targets, target);
 
 		// Save the history of recently used targets.
+		let history = context.globalState.get<string[]>('history') || [];
 		moveElementToFront(history, target);
 		context.globalState.update('history', history);
 
@@ -86,6 +81,31 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
+}
+
+// Read the list of targets from a `tinygo targets` command, ordered by recently
+// used. It will show an error message and return null when the command fails.
+async function readTargetList(context: vscode.ExtensionContext): Promise<string[] | null> {
+	const execFile = util.promisify(cp.execFile);
+
+	// Read the list of targets from TinyGo.
+	try {
+		const {stdout, stderr} = await execFile('tinygo', ['targets']);
+		var targets = stdout.trimRight().split('\n');
+	} catch(err) {
+		vscode.window.showErrorMessage('Could not list TinyGo targets:\n' + err);
+		return null;
+	}
+
+	// Sort targets by most recently used.
+	let history = context.globalState.get<string[]>('history') || [];
+	for (let i=history.length-1; i >= 0; i--) {
+		if (targets.indexOf(history[i]) < 0)
+			continue;
+		moveElementToFront(targets, history[i]);
+	}
+
+	return targets;
 }
 
 // Look for the first occurence of the value in values and move it to the front
