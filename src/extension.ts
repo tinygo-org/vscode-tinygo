@@ -2,8 +2,21 @@ import * as vscode from 'vscode';
 import cp = require('child_process');
 import util = require('util');
 
+let statusbarItem: vscode.StatusBarItem;
+
+let workspaceState: vscode.Memento;
+
 export async function activate(context: vscode.ExtensionContext) {
 	let targets: string[] | null;
+
+	workspaceState = context.workspaceState;
+
+	// Create the TinyGo status bar icon, indicating which target is currently
+	// active. The priority 49 makes sure it's just to the right of the Go
+	// extension.
+	statusbarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 49);
+	statusbarItem.command = 'vscode-tinygo.selectTarget';
+	updateStatusBar();
 
 	// Register the command, _after_ the list of targets has been read. This
 	// makes sure the user will never see an empty list.
@@ -36,7 +49,6 @@ export async function activate(context: vscode.ExtensionContext) {
 				let key = line.substr(0, colonPos).trim();
 				let value = line.substr(colonPos+1).trim();
 				if (key == 'cached GOROOT') {
-					//vscode.window.showInformationMessage(`cached GOROOT: ` + value);
 					goroot = value;
 				} else if (key == 'build tags') {
 					buildTags = value;
@@ -53,7 +65,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			return;
 		}
 		if (!goroot) {
-			// The 'cached GOROOT' property was added at a later time.
+			// The 'cached GOROOT' property was added in TinyGo 0.15.
 			vscode.window.showErrorMessage(`Could not find GOROOT variable for ${target}, perhaps you have an older TinyGo version?`);
 			return;
 		}
@@ -64,6 +76,10 @@ export async function activate(context: vscode.ExtensionContext) {
 		envVars['GOROOT'] = goroot;
 		envVars['GOFLAGS'] = "-tags="+(buildTags.split(' ').join(','));
 		config.update('toolsEnvVars', envVars, vscode.ConfigurationTarget.Workspace);
+
+		// Update status bar.
+		context.workspaceState.update('target', target);
+		updateStatusBar();
 
 		// Move the just picked target to the top of the list.
 		moveElementToFront(targets, target);
@@ -81,6 +97,22 @@ export async function activate(context: vscode.ExtensionContext) {
 	});
 
 	context.subscriptions.push(disposable);
+}
+
+export function deactivate() {
+	statusbarItem.dispose();
+}
+
+// updateStatusBar updates the TinyGo sign in the status bar with the currently
+// selected target.
+function updateStatusBar() {
+	let target = workspaceState.get('target', '');
+	if (target) {
+		statusbarItem.text = 'TinyGo: ' + target;
+	} else {
+		statusbarItem.text = 'TinyGo';
+	}
+	statusbarItem.show();
 }
 
 // Read the list of targets from a `tinygo targets` command, ordered by recently

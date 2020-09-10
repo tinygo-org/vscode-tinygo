@@ -17,6 +17,7 @@
 		"vscode": "^1.48.0"
 	},
 	"activationEvents": [
+		"onLanguage:go",
 		"onCommand:vscode-tinygo.selectTarget"
 	],
 	"main": "./dist/extension.js",
