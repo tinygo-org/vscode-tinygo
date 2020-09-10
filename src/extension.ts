@@ -40,41 +40,43 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Obtain information about this target (GOROOT, build tags).
 		let goroot = '';
 		let buildTags = '';
-		try {
-			const execFile = util.promisify(cp.execFile);
-			const {stdout, stderr} = await execFile('tinygo', ['info', target]);
-			stdout.trimRight().split('\n').forEach(line => {
-				let colonPos = line.indexOf(':');
-				if (colonPos < 0) return;
-				let key = line.substr(0, colonPos).trim();
-				let value = line.substr(colonPos+1).trim();
-				if (key == 'cached GOROOT') {
-					goroot = value;
-				} else if (key == 'build tags') {
-					buildTags = value;
-				}
-			})
-		} catch(err) {
-			vscode.window.showErrorMessage(`Could not run 'tinygo info ${target}':\n` + err);
-			return;
-		}
+		if (target != '-') {
+			try {
+				const execFile = util.promisify(cp.execFile);
+				const {stdout, stderr} = await execFile('tinygo', ['info', target]);
+				stdout.trimRight().split('\n').forEach(line => {
+					let colonPos = line.indexOf(':');
+					if (colonPos < 0) return;
+					let key = line.substr(0, colonPos).trim();
+					let value = line.substr(colonPos+1).trim();
+					if (key == 'cached GOROOT') {
+						goroot = value;
+					} else if (key == 'build tags') {
+						buildTags = value;
+					}
+				})
+			} catch(err) {
+				vscode.window.showErrorMessage(`Could not run 'tinygo info ${target}':\n` + err);
+				return;
+			}
 
-		// Check whether all properties have been found.
-		if (!buildTags) {
-			vscode.window.showErrorMessage(`Could not find build tags for ${target}.`);
-			return;
-		}
-		if (!goroot) {
-			// The 'cached GOROOT' property was added in TinyGo 0.15.
-			vscode.window.showErrorMessage(`Could not find GOROOT variable for ${target}, perhaps you have an older TinyGo version?`);
-			return;
+			// Check whether all properties have been found.
+			if (!buildTags) {
+				vscode.window.showErrorMessage(`Could not find build tags for ${target}.`);
+				return;
+			}
+			if (!goroot) {
+				// The 'cached GOROOT' property was added in TinyGo 0.15.
+				vscode.window.showErrorMessage(`Could not find GOROOT variable for ${target}, perhaps you have an older TinyGo version?`);
+				return;
+			}
 		}
 
 		// Update the configuration in the current workspace.
 		const config = vscode.workspace.getConfiguration('go', null);
 		let envVars = config.get<NodeJS.Dict<string>>('toolsEnvVars', {});
-		envVars['GOROOT'] = goroot;
-		envVars['GOFLAGS'] = "-tags="+(buildTags.split(' ').join(','));
+		envVars.GOROOT = goroot ? goroot: undefined;
+		envVars.GOFLAGS = buildTags ? "-tags="+(buildTags.split(' ').join(',')) : undefined;
 		config.update('toolsEnvVars', envVars, vscode.ConfigurationTarget.Workspace);
 
 		// Update status bar.
@@ -106,8 +108,8 @@ export function deactivate() {
 // updateStatusBar updates the TinyGo sign in the status bar with the currently
 // selected target.
 function updateStatusBar() {
-	let target = workspaceState.get('target', '');
-	if (target) {
+	let target = workspaceState.get('target', '-');
+	if (target != '-') {
 		statusbarItem.text = 'TinyGo: ' + target;
 	} else {
 		statusbarItem.text = 'TinyGo';
@@ -128,6 +130,9 @@ async function readTargetList(context: vscode.ExtensionContext): Promise<string[
 		vscode.window.showErrorMessage('Could not list TinyGo targets:\n' + err);
 		return null;
 	}
+
+	// Special target to revert to Go defaults.
+	targets.unshift('-');
 
 	// Sort targets by most recently used.
 	let history = context.globalState.get<string[]>('history') || [];
