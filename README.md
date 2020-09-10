@@ -2,6 +2,8 @@
 
 This is a simple extension to add TinyGo support to Visual Studio Code.
 
+![The extension in action](images/screenshot.png)
+
 ## Features
 
 Right now the only feature this extension supports is setting the right environment variables in the `.vscode/settings.json` of your workspace. For example, it may set the following configuration to work with the [BBC micro:bit](https://microbit.org/):
@@ -15,7 +17,12 @@ Right now the only feature this extension supports is setting the right environm
 }
 ```
 
-To use it, open the [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) and search for `TinyGo target`. Select it, and select a target from there. Once you've done that, you may need to close and reopen your VS Code window to apply the new settings.
+To use it, click on the `TinyGo` status bar element at the bottom of the screen and select a target. Alternatively, you could open the [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) and search for `TinyGo target`.
+
+Notes:
+
+  * It is probably necessary to reload the window once you've set a new TinyGo target. You will be prompted for this if it's necessary.
+  * If the Go extension asks you to rebuild tools because the `GOROOT` changed, don't do that. It will result in errors and not do what you expect. This is something that should be improved in a future version.
 
 ## Requirements
 
