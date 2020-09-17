@@ -9,6 +9,7 @@
 	"categories": [
 		"Programming Languages"
 	],
+	"extensionDependencies": ["golang.go"],
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/tinygo-org/vscode-tinygo"

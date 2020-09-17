@@ -28,5 +28,5 @@ Notes:
 
 This extension depends on the following:
 
-  * The [Go extension for VS Code](https://marketplace.visualstudio.com/items?itemName=golang.go).
+  * The [Go extension for VS Code](https://marketplace.visualstudio.com/items?itemName=golang.go). This extension should be automatically installed as a dependency.
   * The TinyGo compiler, version 0.15 or later. See [installation instructions for your operating system](https://tinygo.org/getting-started/).
