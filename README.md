@@ -30,3 +30,20 @@ This extension depends on the following:
 
   * The [Go extension for VS Code](https://marketplace.visualstudio.com/items?itemName=golang.go). This extension should be automatically installed as a dependency.
   * The TinyGo compiler, version 0.15 or later. See [installation instructions for your operating system](https://tinygo.org/getting-started/).
+
+## Development
+
+For easy development, you can modify the package.json file a bit:
+
+```diff
+-       "main": "./dist/extension.js",
++       "main": "./out/extension.js",
+```
+
+There is probably a better way, but this works.
+
+To create an extension as a package, run the following command:
+
+    vsce package
+
+This creates a new `vscode-tinygo-<version>.vsix` file that you can install directly in VS Code.
