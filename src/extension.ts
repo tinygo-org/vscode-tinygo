@@ -28,10 +28,17 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	updatePreviewStatus();
 
-	context.subscriptions.push(vscode.commands.registerCommand('vscode-tinygo.showPreviewToSide', async () => {
+	context.subscriptions.push(vscode.commands.registerCommand('vscode-tinygo.showPreviewToSide', async (uri: vscode.Uri) => {
 		const mkdir = util.promisify(fs.mkdir);
 		const readFile = util.promisify(fs.readFile);
 		const writeFile = util.promisify(fs.writeFile);
+
+		if (uri.scheme != 'file') {
+			vscode.window.showErrorMessage('Cannot preview non-local packages.');
+			return;
+		}
+		// The full (absolute) path to the package this Go file is part of.
+		let packageFullPath = path.dirname(uri.fsPath);
 
 		if (!context.storagePath) {
 			// TODO: handle this in a more graceful manner.
@@ -86,7 +93,7 @@ export async function activate(context: vscode.ExtensionContext) {
 					// WebAssembly file to the webview. Also start listening for
 					// saved Go files, to redo the compilation and run the new
 					// code in the WebView.
-					let compiler = new Compiler(context, panel, message.buildTags);
+					let compiler = new Compiler(context, panel, packageFullPath, message.buildTags);
 					compiler.compile();
 					watcher = vscode.workspace.createFileSystemWatcher('**/*.go');
 					let compiling = 0;
@@ -95,7 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
 							// A previous compilation was already running.
 							// Abort the process and restart.
 							compiler.stop();
-							compiler = new Compiler(context, panel, message.buildTags);
+							compiler = new Compiler(context, panel, packageFullPath, message.buildTags);
 						}
 						compiling++;
 						await compiler.compile();
@@ -338,12 +345,14 @@ class Compiler {
 	buildTags: string[];
 	context: vscode.ExtensionContext;
 	panel: vscode.WebviewPanel;
+	importPath: string;
 	process: cp.ChildProcess | undefined;
 	promise: Promise<string[]> | undefined;
 
-	constructor(context: vscode.ExtensionContext, panel: vscode.WebviewPanel, buildTags: string[]) {
+	constructor(context: vscode.ExtensionContext, panel: vscode.WebviewPanel, importPath: string, buildTags: string[]) {
 		this.context = context;
 		this.panel = panel;
+		this.importPath = importPath;
 		this.buildTags = buildTags;
 	}
 
@@ -369,7 +378,7 @@ class Compiler {
 		const outputPath = path.join(storagePath, 'vscode-tinygo-build-' + (Math.random() * 1e12).toFixed() + '.wasm');
 		this.promise = new Promise((resolve, reject) => {
 			// Both -opt=1 and -no-debug improve compile time slightly.
-			let process = cp.execFile('tinygo', ['build', '-o', outputPath, '-tags', this.buildTags.join(','), '-opt=1', '-no-debug', '.'],
+			let process = cp.execFile('tinygo', ['build', '-o', outputPath, '-tags', this.buildTags.join(','), '-opt=1', '-no-debug', this.importPath],
 			{
 				cwd: folder.uri.fsPath,
 			}, (error, stdout, stderr) => {
