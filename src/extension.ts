@@ -73,6 +73,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 
 		// Update the configuration in the current workspace.
+		// This will automatically reload gopls.
 		const config = vscode.workspace.getConfiguration('go', null);
 		let envVars = config.get<NodeJS.Dict<string>>('toolsEnvVars', {});
 		envVars.GOROOT = goroot ? goroot: undefined;
@@ -90,12 +91,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		let history = context.globalState.get<string[]>('history') || [];
 		moveElementToFront(history, target);
 		context.globalState.update('history', history);
-
-		// Success!
-		let buttonClicked = await vscode.window.showInformationMessage(`Updated TinyGo target to ${target}. You may need to reload this window for the changes to take effect.`, 'Reload');
-		if (buttonClicked === 'Reload') {
-			vscode.commands.executeCommand('workbench.action.reloadWindow');
-		}
 	});
 
 	context.subscriptions.push(disposable);
