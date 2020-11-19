@@ -497,19 +497,26 @@ class LED extends Device {
     }
 
     onPinChange() {
+        // The LED turns on when at least one of the pins is correctly connected
+        // (not floating). This makes it easier to wire them (no need for a
+        // VCC/ground wire) while retaining somewhat real-world behavior by not
+        // turning on when both pins are floating.
         let anode = true;   // true if negative (or unconnected)
         let cathode = true; // true if positive (or unconnected)
+        let anodeConnected, cathodeConnected;
         for (let pin of this.pins[0].connected) {
             if (pin.mode == 'output') {
                 anode = !pin.high;
+                anodeConnected = true;
             }
         }
         for (let pin of this.pins[1].connected) {
             if (pin.mode == 'output') {
                 cathode = pin.high;
+                cathodeConnected = true;
             }
         }
-        this.set(anode && cathode);
+        this.set(anode && cathode && (anodeConnected || cathodeConnected));
     }
 }
 
