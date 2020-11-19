@@ -19,6 +19,13 @@ class Pin {
         this.updateShape();
     }
 
+    // Reset this pin to the initial power-on state.
+    reset() {
+        this.mode = this.data.mode || 'input';
+        this.high = false;
+        this.update();
+    }
+
     get name() {
         return this.data.name;
     }
@@ -335,6 +342,9 @@ class Microcontroller extends Device {
         if (this.runner) {
             this.runner.stop();
         }
+        for (let pin of this.pins) {
+            pin.reset();
+        }
         this.runner = new Runner(this, logger);
         await this.runner.run(await fetch(url));
     }
@@ -342,6 +352,9 @@ class Microcontroller extends Device {
     async runBinary(binary, logger) {
         if (this.runner) {
             this.runner.stop();
+        }
+        for (let pin of this.pins) {
+            pin.reset();
         }
         this.runner = new Runner(this, logger);
         await this.runner.run(binary);
