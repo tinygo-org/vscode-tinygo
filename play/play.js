@@ -289,11 +289,25 @@ class Play {
         let overlay = this.objects[obj.id].overlay;
         let outline = this.objects[obj.id].outline;
 
+        // Calculate how much the object must be moved (before scaling) to
+        // compensate for the rotation.
+        let offsetX = 0;
+        let offsetY = 0;
+        if (obj.rotation == 90) {
+            offsetX = obj.height * (96 / 25.4);
+        } else if (obj.rotation == 180) {
+            offsetX = obj.width * (96 / 25.4);
+            offsetY = obj.height * (96 / 25.4);
+        } else if (obj.rotation == 270) {
+            offsetY = obj.width * (96 / 25.4);
+        }
+
         // Position the object.
         let translate = 'translate(' + (obj.properties.x || 0) * this.scale + 'px, ' + (obj.properties.y || 0) * this.scale + 'px)';
-        overlay.style.transform = translate;
-        outline.style.transform = translate;
-        obj.element.style.transform = translate + ' scale(' + this.scale + ')';
+        let rotate = 'translate(' + (offsetX * this.scale) + 'px, ' + (offsetY * this.scale) + 'px) rotate(' + obj.rotation + 'deg)';
+        overlay.style.transform = translate + ' ' + rotate;
+        outline.style.transform = translate + ' ' + rotate;
+        obj.element.style.transform = translate + ' ' + rotate + ' scale(' + this.scale + ')';
 
         if (!fullLayout) {
             // Positioning is all that's needed with normal drag/drop.
@@ -313,12 +327,17 @@ class Play {
             pad.setAttribute('r', 5 * this.scale);
 
             let padTextLayer = pad.nextElementSibling;
-            // Convert from mm to px by multiplying with (96 / 25.4), then move
-            // the label a bit to a more convenient location (just outside the
-            // pad).
-            let x = (pin.data.x * this.scale) * (96 / 25.4) + (5 * this.scale) + 2;
-            let y = (pin.data.y * this.scale) * (96 / 25.4) - 10;
-            padTextLayer.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
+            // Convert from mm to px by multiplying with (96 / 25.4).
+            let x = (pin.data.x * this.scale) * (96 / 25.4);
+            let y = (pin.data.y * this.scale) * (96 / 25.4);
+            // Move the label a bit to a more convenient location (just outside
+            // the pad). This must be done after rotating otherwise it would
+            // move in the wrong direction.
+            let labelOffsetX = (5 * this.scale) + 2;
+            let labelOffsetY = -10;
+            // Move the the right position, then rotate the label, then move the
+            // label a bit down and to the right.
+            padTextLayer.style.transform = 'translate(' + x + 'px, ' + y + 'px) rotate(' + -obj.rotation + 'deg) translate(' + labelOffsetX + 'px, ' + labelOffsetY + 'px)';
         }
     }
 
@@ -482,6 +501,32 @@ class Play {
         // Update properties tab
         let propertiesDiv = this.info.querySelector('#info-properties');
         propertiesDiv.innerHTML = '';
+
+        // Add rotation property.
+        let name = document.createElement('div');
+        name.textContent = 'Rotation:';
+        propertiesDiv.appendChild(name);
+
+        let div = document.createElement('div');
+        propertiesDiv.appendChild(div);
+
+        let select = document.createElement('select');
+        for (let rotation of [0, 90, 180, 270]) {
+            let option = document.createElement('option');
+            option.textContent = rotation + '°';
+            option.value = rotation;
+            select.appendChild(option);
+        }
+        select.value = this.selected.properties.rotation || 0;
+        select.addEventListener('change', () => {
+            this.selected.properties.rotation = parseInt(select.value);
+            this.layoutObject(this.selected, true);
+            for (let wire of this.wires) {
+                wire.layout();
+            }
+        });
+        div.appendChild(select);
+
         if ('color' in this.selected.properties) {
             let name = document.createElement('div');
             name.textContent = 'Color:';
@@ -496,6 +541,7 @@ class Play {
             });
             propertiesDiv.appendChild(input);
         }
+
         if ('shape' in this.selected.properties) {
             let name = document.createElement('div');
             name.textContent = 'Size:';

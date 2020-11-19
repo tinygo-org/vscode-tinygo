@@ -289,6 +289,10 @@ class Device {
         return this.data.height;
     }
 
+    get rotation() {
+        return this.properties.rotation || 0;
+    }
+
     updateShape() {
         this.element.style.width = this.width + 'mm';
         this.element.style.height = this.height + 'mm';
