@@ -272,7 +272,7 @@ class Play {
         });
         outline.addEventListener('mousedown', (e) => {
             this.select(obj);
-            let rect = obj.element.getBoundingClientRect();
+            let rect = outline.getBoundingClientRect();
             this.moveMode = 'drag';
             this.shiftX = e.clientX - rect.left;
             this.shiftY = e.clientY - rect.top;
