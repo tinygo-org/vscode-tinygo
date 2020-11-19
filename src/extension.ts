@@ -316,6 +316,9 @@ function getPreviewHTML(baseURL: string): string {
   </head>
   <body class="vscode">
     <svg id="viewport">
+      <g class="objects"></g>
+      <g class="wires"></g>
+      <g class="overlays"></g>
     </svg>
     <div id="info" class="panel">
       <div class="topbar">

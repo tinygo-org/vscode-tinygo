@@ -34,16 +34,16 @@ body:not(.running) #viewport {
     fill: yellow;
 }
 
-.device + .outline {
+#viewport .outline {
     fill: transparent;
     stroke: transparent;
     stroke-width: 1px;
     stroke-dasharray: 3 3;
 }
-.device + .outline:hover {
+#viewport .outline:hover {
     stroke: rgba(255, 255, 255, 0.5);
 }
-.device.selected + .outline {
+#viewport .device.selected + .outline {
     stroke: rgba(255, 255, 255, 0.9);
 }
 
@@ -52,6 +52,17 @@ body:not(.running) #viewport {
 }
 #viewport .pad:hover {
     fill: #8888;
+}
+#viewport .pad-text {
+    fill: white;
+    font-size: 16px;
+}
+#viewport .pad-text > rect {
+    fill: #777d;
+    rx: 4px;
+}
+#viewport .pad:not(:hover) + .pad-text {
+    display: none;
 }
 
 #viewport .wire {

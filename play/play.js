@@ -137,42 +137,9 @@ class Play {
                 // Unfocus.
                 this.deselect();
             } else if (e.key == 'Delete' && this.selected) {
-                // Delete object.
                 let obj = this.selected;
-                if (obj instanceof Device) {
-                    if (obj.id == this.data.objects[0].id) {
-                        // Do not delete the first object, which is the central
-                        // board.
-                        return;
-                    }
-                    this.deselect();
-                    this.objects[obj.id].wrapper.remove();
-                    delete this.objects[obj.id];
-                    this.data.objects.splice(this.data.objects.indexOf(obj.properties), 1);
-
-                    // Delete wires attached to the object.
-                    let pinsNeedingUpdate = new Set();
-                    for (let i=0; i<this.wires.length; i++) {
-                        let wire = this.wires[i];
-                        if (wire.from.device == obj || wire.to.device == obj) {
-                            // A wire to be deleted.
-                            pinsNeedingUpdate.add(wire.from);
-                            pinsNeedingUpdate.add(wire.to);
-                            this.removeWire(wire);
-                            i--; // continue with the same index in the next loop
-                        }
-                    }
-                    wireConfigurationVersion++;
-                    for (let pin of pinsNeedingUpdate) {
-                        pin.update();
-                    }
-                } else if (obj instanceof Wire) {
-                    this.removeWire(obj);
-                    wireConfigurationVersion++;
-                    obj.from.update();
-                    obj.to.update();
-                }
-                this.save();
+                this.deselect();
+                this.removeObject(obj);
             }
         })
     }
@@ -191,35 +158,66 @@ class Play {
     }
 
     async addObject(objData) {
-        // Create a wrapper layer to put all DOM nodes in, for convenience. It
-        // allows moving the entire device at once.
-        let wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        wrapper.classList.add('wrapper');
-        this.viewport.appendChild(wrapper);
-
         // Create the object.
         let obj = await createObject(this, objData);
-        this.objects[obj.id] = {
-            obj: obj,
-            wrapper: wrapper,
-            pads: [],
-        };
-        wrapper.appendChild(obj.element);
+        this.viewport.querySelector(':scope > .objects').appendChild(obj.element);
 
         // Create an outline to show when the object is selected.
         let outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         outline.classList.add('outline');
         outline.style.x = (-0.5 * objectBorderSize - 1) + 'px';
         outline.style.y = (-0.5 * objectBorderSize - 1) + 'px';
-        wrapper.appendChild(outline);
+        this.viewport.querySelector(':scope > .objects').appendChild(outline);
+
+        // Create an overlay layer to put all overlay (pads and labels) DOM
+        // nodes in, for convenience. It allows moving all those objects at
+        // once.
+        let overlay = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        overlay.classList.add('overlay');
+        this.viewport.querySelector(':scope > .overlays').appendChild(overlay);
+
+        this.objects[obj.id] = {
+            obj:     obj,
+            outline: outline,
+            overlay: overlay,
+            pads:    [],
+        };
 
         // Create a small (normally invisible) circle over each pad on the
         // device that a wire can be attached to.
         for (let pin of obj.pins) {
+            // Create the circle.
             let pad = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             pad.classList.add('pad');
-            wrapper.appendChild(pad);
+            overlay.appendChild(pad);
             this.objects[obj.id].pads.push(pad);
+
+            // Create a label when hovering over the circle.
+            let padTextLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            padTextLayer.classList.add('pad-text');
+            overlay.appendChild(padTextLayer);
+
+            // Create the background for the label.
+            let padTextBackground = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            padTextBackground.setAttribute('height', '22px');
+            padTextLayer.appendChild(padTextBackground)
+
+            // Create the text in the label (which is the pin name).
+            let padText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            padTextLayer.appendChild(padText);
+            padText.textContent = pin.name;
+            padText.setAttribute('x', '4px');
+            padText.setAttribute('y', '17px');
+
+            // Make the background just large enough to cover the text.
+            // This has to be done with the label visible, otherwise
+            // getComputedTextLength won't work.
+            padTextLayer.style.display = 'initial';
+            let length = padText.getComputedTextLength();
+            padTextLayer.style.display = '';
+            padTextLayer.querySelector('rect').setAttribute('width', (length + 8)+'px');
+
+            // Handle when the circle is clicked.
             pad.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (this.moveMode == 'add-wire') {
@@ -288,21 +286,21 @@ class Play {
     }
 
     layoutObject(obj, fullLayout) {
-        let wrapper = obj.element.parentNode;
+        let overlay = this.objects[obj.id].overlay;
+        let outline = this.objects[obj.id].outline;
 
-        // Position the wrapper.
-        wrapper.style.transform = 'translate(' + (obj.properties.x || 0) * this.scale + 'px, ' + (obj.properties.y || 0) * this.scale + 'px)';
+        // Position the object.
+        let translate = 'translate(' + (obj.properties.x || 0) * this.scale + 'px, ' + (obj.properties.y || 0) * this.scale + 'px)';
+        overlay.style.transform = translate;
+        outline.style.transform = translate;
+        obj.element.style.transform = translate + ' scale(' + this.scale + ')';
 
         if (!fullLayout) {
             // Positioning is all that's needed with normal drag/drop.
             return;
         }
 
-        // Scale the object itself.
-        obj.element.style.transform = 'scale(' + this.scale + ')';
-
         // Layout the outline of the object.
-        let outline = obj.element.nextElementSibling;
         outline.style.width = 'calc(' + obj.element.style.width + ' * ' + this.scale + ' + ' + (objectBorderSize + 2) + 'px)';
         outline.style.height= 'calc(' + obj.element.style.height + ' * ' + this.scale + ' + ' + (objectBorderSize + 2) + 'px)';
 
@@ -313,6 +311,14 @@ class Play {
             pad.setAttribute('cx', (pin.data.x * this.scale) + 'mm');
             pad.setAttribute('cy', (pin.data.y * this.scale) + 'mm');
             pad.setAttribute('r', 5 * this.scale);
+
+            let padTextLayer = pad.nextElementSibling;
+            // Convert from mm to px by multiplying with (96 / 25.4), then move
+            // the label a bit to a more convenient location (just outside the
+            // pad).
+            let x = (pin.data.x * this.scale) * (96 / 25.4) + (5 * this.scale) + 2;
+            let y = (pin.data.y * this.scale) * (96 / 25.4) - 10;
+            padTextLayer.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
         }
     }
 
@@ -320,7 +326,7 @@ class Play {
         // Create the line.
         let wire = new Wire(this, data);
         this.wires.push(wire);
-        this.viewport.appendChild(wire.element);
+        this.viewport.querySelector(':scope > .wires').appendChild(wire.element);
         wire.element.addEventListener('click', (e) => {
             e.stopPropagation();
             this.select(wire);
@@ -346,6 +352,45 @@ class Play {
                 return obj;
             }
         }
+    }
+
+    // Remove some object, either a device or a wire.
+    removeObject(obj) {
+        if (obj instanceof Device) {
+            if (obj.id == this.data.objects[0].id) {
+                // Do not delete the first object, which is the central
+                // board.
+                return;
+            }
+            obj.element.nextElementSibling.remove();
+            obj.element.remove();
+            this.objects[obj.id].overlay.remove();
+            delete this.objects[obj.id];
+            this.data.objects.splice(this.data.objects.indexOf(obj.properties), 1);
+
+            // Delete wires attached to the object.
+            let pinsNeedingUpdate = new Set();
+            for (let i=0; i<this.wires.length; i++) {
+                let wire = this.wires[i];
+                if (wire.from.device == obj || wire.to.device == obj) {
+                    // A wire to be deleted.
+                    pinsNeedingUpdate.add(wire.from);
+                    pinsNeedingUpdate.add(wire.to);
+                    this.removeWire(wire);
+                    i--; // continue with the same index in the next loop
+                }
+            }
+            wireConfigurationVersion++;
+            for (let pin of pinsNeedingUpdate) {
+                pin.update();
+            }
+        } else if (obj instanceof Wire) {
+            this.removeWire(obj);
+            wireConfigurationVersion++;
+            obj.from.update();
+            obj.to.update();
+        }
+        this.save();
     }
 
     removeWire(wire) {
