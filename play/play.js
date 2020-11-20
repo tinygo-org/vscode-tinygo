@@ -158,16 +158,21 @@ class Play {
     }
 
     async addObject(objData) {
-        // Create the object.
-        let obj = await createObject(this, objData);
-        this.viewport.querySelector(':scope > .objects').appendChild(obj.element);
+        // Create a wrapper layer for the object itself and the outline.
+        let wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        wrapper.classList.add('device-wrapper');
+        this.viewport.querySelector(':scope > .objects').appendChild(wrapper);
 
         // Create an outline to show when the object is selected.
         let outline = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         outline.classList.add('outline');
         outline.style.x = (-0.5 * objectBorderSize - 1) + 'px';
         outline.style.y = (-0.5 * objectBorderSize - 1) + 'px';
-        this.viewport.querySelector(':scope > .objects').appendChild(outline);
+        wrapper.appendChild(outline);
+
+        // Create the object.
+        let obj = await createObject(this, objData);
+        wrapper.appendChild(obj.element);
 
         // Create an overlay layer to put all overlay (pads and labels) DOM
         // nodes in, for convenience. It allows moving all those objects at
@@ -266,18 +271,18 @@ class Play {
         this.layoutObject(obj, true);
 
         // Make the object draggable.
-        outline.addEventListener('click', (e) => {
+        wrapper.addEventListener('click', (e) => {
             e.stopPropagation();
             this.select(obj);
         });
-        outline.addEventListener('mousedown', (e) => {
+        wrapper.addEventListener('mousedown', (e) => {
             this.select(obj);
             let rect = outline.getBoundingClientRect();
             this.moveMode = 'drag';
             this.shiftX = e.clientX - rect.left;
             this.shiftY = e.clientY - rect.top;
         });
-        outline.addEventListener('mouseup', (e) => {
+        wrapper.addEventListener('mouseup', (e) => {
             this.moveMode = '';
             this.save();
         });
@@ -381,7 +386,7 @@ class Play {
                 // board.
                 return;
             }
-            obj.element.nextElementSibling.remove();
+            obj.element.previousElementSibling.remove();
             obj.element.remove();
             this.objects[obj.id].overlay.remove();
             delete this.objects[obj.id];
@@ -425,10 +430,12 @@ class Play {
         if (this.selected) {
             this.deselect();
         }
-        obj.element.classList.add('selected');
         this.selected = obj;
         if (obj instanceof Device) {
+            obj.element.parentNode.classList.add('selected');
             this.updateInfo();
+        } else {
+            obj.element.classList.add('selected');
         }
     }
 
@@ -440,7 +447,11 @@ class Play {
             this.moveMode = '';
             this.removeWire(this.selected);
         }
-        this.selected.element.classList.remove('selected');
+        if (this.selected instanceof Device) {
+            this.selected.element.parentNode.classList.remove('selected');
+        } else {
+            this.selected.element.classList.remove('selected');
+        }
         this.selected = null;
         this.info.classList.remove('enabled');
     }

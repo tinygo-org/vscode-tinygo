@@ -40,10 +40,10 @@ body:not(.running) #viewport {
     stroke-width: 1px;
     stroke-dasharray: 3 3;
 }
-#viewport .outline:hover {
+#viewport .device-wrapper:hover > .outline {
     stroke: rgba(255, 255, 255, 0.5);
 }
-#viewport .device.selected + .outline {
+#viewport .device-wrapper.selected > .outline {
     stroke: rgba(255, 255, 255, 0.9);
 }
 
