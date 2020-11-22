@@ -525,22 +525,28 @@ class LED extends Device {
         // (not floating). This makes it easier to wire them (no need for a
         // VCC/ground wire) while retaining somewhat real-world behavior by not
         // turning on when both pins are floating.
-        let anode = true;   // true if negative (or unconnected)
-        let cathode = true; // true if positive (or unconnected)
-        let anodeConnected, cathodeConnected;
+        let anode = false;   // true if high
+        let cathode = false; // true if low
         for (let pin of this.pins[0].connected) {
             if (pin.mode == 'output') {
-                anode = !pin.high;
-                anodeConnected = true;
+                anode = pin.high;
             }
         }
         for (let pin of this.pins[1].connected) {
             if (pin.mode == 'output') {
-                cathode = pin.high;
-                cathodeConnected = true;
+                cathode = !pin.high;
             }
         }
-        this.set(anode && cathode && (anodeConnected || cathodeConnected));
+        let anodeConnected = this.pins[0].connected.size > 1;
+        let cathodeConnected = this.pins[1].connected.size > 1;
+        let on = anodeConnected || cathodeConnected;
+        if (anodeConnected && !anode) {
+            on = false;
+        }
+        if (cathodeConnected && !cathode) {
+            on = false;
+        }
+        this.set(on);
     }
 }
 
