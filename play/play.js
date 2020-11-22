@@ -195,6 +195,12 @@ class Play {
             overlay.appendChild(pad);
             this.objects[obj.id].pads.push(pad);
 
+            if (!pin.name) {
+                // Pins without name cannot be connected to. These can be used
+                // for board-internal connections.
+                continue;
+            }
+
             let circleRadius = 5;
 
             // If set, use the background element as a hover mask so that
@@ -325,23 +331,16 @@ class Play {
 
         // Calculate how much the object must be moved (before scaling) to
         // compensate for the rotation.
-        let offsetX = 0;
-        let offsetY = 0;
-        if (obj.rotation == 90) {
-            offsetX = obj.height * (96 / 25.4);
-        } else if (obj.rotation == 180) {
-            offsetX = obj.width * (96 / 25.4);
-            offsetY = obj.height * (96 / 25.4);
-        } else if (obj.rotation == 270) {
-            offsetY = obj.width * (96 / 25.4);
-        }
+        let [offsetX, offsetY] = applyRotation(obj.rotation, mm2px(obj.width), mm2px(obj.height));
+        offsetX += obj.properties.x || 0;
+        offsetY += obj.properties.y || 0;
 
         // Position the object.
-        let translate = 'translate(' + (obj.properties.x || 0) * this.scale + 'px, ' + (obj.properties.y || 0) * this.scale + 'px)';
-        let rotate = 'translate(' + (offsetX * this.scale) + 'px, ' + (offsetY * this.scale) + 'px) rotate(' + obj.rotation + 'deg)';
-        overlay.style.transform = translate + ' ' + rotate;
-        outline.style.transform = translate + ' ' + rotate;
-        obj.element.style.transform = translate + ' ' + rotate + ' scale(' + this.scale + ')';
+        let transform = 'translate(' + offsetX * this.scale + 'px, ' + offsetY * this.scale + 'px)';
+        transform += ' rotate(' + obj.rotation + 'deg)';
+        overlay.style.transform = transform;
+        outline.style.transform = transform;
+        obj.element.style.transform = transform + ' scale(' + this.scale + ')';
 
         if (!fullLayout) {
             // Positioning is all that's needed with normal drag/drop.
@@ -349,12 +348,13 @@ class Play {
         }
 
         // Layout the outline of the object.
-        outline.style.width = 'calc(' + obj.element.style.width + ' * ' + this.scale + ' + ' + (objectBorderSize + 2) + 'px)';
-        outline.style.height= 'calc(' + obj.element.style.height + ' * ' + this.scale + ' + ' + (objectBorderSize + 2) + 'px)';
+        outline.style.width  = (mm2px(obj.width)  * this.scale + (objectBorderSize + 2)) + 'px';
+        outline.style.height = (mm2px(obj.height) * this.scale + (objectBorderSize + 2)) + 'px';
 
         // Layout the pin pads.
         for (let i=0; i<obj.pins.length; i++) {
             let pin = obj.pins[i];
+            if (!pin.name) continue; // pin is board-internal
             let pad = this.objects[obj.id].pads[i];
             pad.style.transform = 'scale(' + this.scale + ')';
 
@@ -505,6 +505,7 @@ class Play {
         let connectionsDiv = this.info.querySelector('#info-pins');
         connectionsDiv.innerHTML = '';
         for (let pin of this.selected.pins) {
+            if (!pin.name) continue; // pin is board-internal
             let spans = [];
             let connectionDiv = document.createElement('div');
             connectionDiv.classList.add('pin-connection');
@@ -644,6 +645,22 @@ async function createObject(parent, properties) {
 function mm2px(mm) {
     // Source: https://stackoverflow.com/a/36600437/559350
     return mm * (96 / 25.4);
+}
+
+// Return how much the object should be moved before rotation so that it rotates
+// in place.
+function applyRotation(rotation, width, height) {
+    let x = 0;
+    let y = 0;
+    if (rotation == 90) {
+        x = height;
+    } else if (rotation == 180) {
+        x = width;
+        y = height;
+    } else if (rotation == 270) {
+        y = width;
+    }
+    return [x, y];
 }
 
 async function init() {

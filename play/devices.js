@@ -287,10 +287,8 @@ class Device {
         this.properties = properties;
         this.data = data;
         this.element = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this.element.style.width = this.width+'mm';
-        this.element.style.height = this.height+'mm';
-        this.element.style.transform = 'translate(' + properties.x + 'mm, ' + properties.y + 'mm)';
         this.element.classList.add('device');
+        this.element.dataset.id = this.id; // mainly for debugging
     }
 
     get id() {
@@ -698,6 +696,8 @@ class Composite extends Device {
             let obj = await createObject(this, child);
             this.objects[child.id] = obj;
             this.element.appendChild(obj.element);
+            let [x, y] = applyRotation(obj.rotation, obj.width, obj.height);
+            obj.element.style.transform = 'translate(' + (child.x + x) + 'mm, ' + (child.y + y) + 'mm) rotate(' + obj.rotation + 'deg)';
         }
 
         for (let i=0; i<this.pins.length; i++) {
