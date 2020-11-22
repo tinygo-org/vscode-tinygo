@@ -1,0 +1,187 @@
+{
+    "name": "BBC micro:bit",
+    "background": "microbit.svg",
+    "width": 52,
+    "height": 42,
+    "objects": [
+        {
+            "type": "device",
+            "id": "mcu",
+            "device": "nrf51822",
+            "tinygo_buildTags": ["microbit"]
+        }
+    ],
+    "pins": [
+        {
+            "name": "P0",
+            "x": 4.41,
+            "y": 41,
+            "svgId": "pin-P0",
+            "connected": [
+                {"id": "mcu", "pin": "P0_03"}
+            ]
+        },
+        {
+            "name": "P1",
+            "x": 14.57,
+            "y": 41,
+            "svgId": "pin-P1",
+            "connected": [
+                {"id": "mcu", "pin": "P0_02"}
+            ]
+        },
+        {
+            "name": "P2",
+            "x": 26,
+            "y": 41,
+            "svgId": "pin-P2",
+            "connected": [
+                {"id": "mcu", "pin": "P0_01"}
+            ]
+        },
+        {
+            "name": "P3",
+            "x": 1.235,
+            "y": 41,
+            "svgId": "pin-P3",
+            "connected": [
+                {"id": "mcu", "pin": "P0_04"}
+            ]
+        },
+        {
+            "name": "P4",
+            "x": 7.585,
+            "y": 41,
+            "svgId": "pin-P4",
+            "connected": [
+                {"id": "mcu", "pin": "P0_05"}
+            ]
+        },
+        {
+            "name": "P5",
+            "x": 8.855,
+            "y": 41,
+            "svgId": "pin-P5",
+            "connected": [
+                {"id": "mcu", "pin": "P0_17"}
+            ]
+        },
+        {
+            "name": "P6",
+            "x": 10.125,
+            "y": 41,
+            "svgId": "pin-P6",
+            "connected": [
+                {"id": "mcu", "pin": "P0_12"}
+            ]
+        },
+        {
+            "name": "P7",
+            "x": 11.395,
+            "y": 41,
+            "svgId": "pin-P7",
+            "connected": [
+                {"id": "mcu", "pin": "P0_11"}
+            ]
+        },
+        {
+            "name": "P8",
+            "x": 17.745,
+            "y": 41,
+            "svgId": "pin-P8",
+            "connected": [
+                {"id": "mcu", "pin": "P0_18"}
+            ]
+        },
+        {
+            "name": "P9",
+            "x": 19.015,
+            "y": 41,
+            "svgId": "pin-P9",
+            "connected": [
+                {"id": "mcu", "pin": "P0_10"}
+            ]
+        },
+        {
+            "name": "P10",
+            "x": 20.285,
+            "y": 41,
+            "svgId": "pin-P10",
+            "connected": [
+                {"id": "mcu", "pin": "P0_06"}
+            ]
+        },
+        {
+            "name": "P11",
+            "x": 21.555,
+            "y": 41,
+            "svgId": "pin-P11",
+            "connected": [
+                {"id": "mcu", "pin": "P0_26"}
+            ]
+        },
+        {
+            "name": "P12",
+            "x": 22.825,
+            "y": 41,
+            "svgId": "pin-P12",
+            "connected": [
+                {"id": "mcu", "pin": "P0_20"}
+            ]
+        },
+        {
+            "name": "P13",
+            "x": 29.175,
+            "y": 41,
+            "svgId": "pin-P13",
+            "connected": [
+                {"id": "mcu", "pin": "P0_23"}
+            ]
+        },
+        {
+            "name": "P14",
+            "x": 30.445,
+            "y": 41,
+            "svgId": "pin-P14",
+            "connected": [
+                {"id": "mcu", "pin": "P0_22"}
+            ]
+        },
+        {
+            "name": "P15",
+            "x": 31.715,
+            "y": 41,
+            "svgId": "pin-P15",
+            "connected": [
+                {"id": "mcu", "pin": "P0_21"}
+            ]
+        },
+        {
+            "name": "P16",
+            "x": 32.985,
+            "y": 41,
+            "svgId": "pin-P16",
+            "connected": [
+                {"id": "mcu", "pin": "P0_16"}
+            ]
+        },
+        {
+            "name": "P19",
+            "x": 41.875,
+            "y": 41,
+            "svgId": "pin-P19",
+            "connected": [
+                {"id": "mcu", "pin": "P0_00"}
+            ]
+        },
+        {
+            "name": "P20",
+            "x": 43.145,
+            "y": 41,
+            "svgId": "pin-P20",
+            "connected": [
+                {"id": "mcu", "pin": "P0_30"}
+            ]
+        }
+    ]
+}

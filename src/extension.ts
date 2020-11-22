@@ -12,6 +12,7 @@ let workspaceState: vscode.Memento;
 const devices = new Set([
 	'arduino',
 	'arduino-nano33',
+	'microbit',
 ]);
 
 export async function activate(context: vscode.ExtensionContext) {

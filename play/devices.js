@@ -16,6 +16,19 @@ class Pin {
         this.connectionCache = null;
         this.connectionCacheVersion = 0;
         this.wires = new Set(); // wires between development boards or independent electronics
+
+        // The pin uses one or two elements.
+        // - When data.svgId is set, the background SVG for the device (normally
+        //   a board) will be loaded and the element with that ID will be set to
+        //   this.backgroundElement. this.element will then be a very small
+        //   invisible square just enough for wires to know where to position
+        //   themselves.
+        // - Otherwise (and normally) data.svgId is not set, meaning that
+        //   this.backgroundElement remains null and this.element is the element
+        //   that is used for presentation of this pin.
+        this.element = null;
+        this.backgroundElement = null;
+
         this.updateShape();
     }
 
@@ -115,7 +128,14 @@ class Pin {
         // Create new element if needed.
         if ('x' in this.data && 'y' in this.data) {
             this.element = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            const size = 2;
+            let size = 2;
+            if (this.data.svgId) {
+                // See the class constructor for an explanation.
+                // Size can't be 0 otherwise getBoundingClientRect (to determine
+                // wire location) won't work.
+                size = 0.001;
+                this.element.style.fill = 'transparent';
+            }
             this.element.style.width = size+'mm';
             this.element.style.height = size+'mm';
             this.element.style.x = (this.data.x - size/2) + 'mm';
@@ -628,13 +648,42 @@ class WS2812 extends Device {
 class Composite extends Device {
     constructor(parent, properties, data) {
         super(parent, properties, data);
+
         if (data.background) {
-            let image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-            image.setAttribute('href', 'devices/'+data.background);
-            this.element.appendChild(image);
+            // Load the background SVG using a promise so that loadChildren can
+            // wait until the background is fully loaded. The pins are only
+            // fully valid (with backgroundElement set) after this is done.
+            this.backgroundLoaded = new Promise((resolve, reject) => {
+                // Using an XHR here because the fetch API doesn't directly
+                // allow loading XML documents.
+                let req = new XMLHttpRequest();
+                req.responseType = 'document';
+                req.open('GET', 'devices/'+data.background);
+                req.send();
+                req.onload = () => {
+                    let svg = req.response.documentElement;
+                    this.element.prepend(svg);
+                    for (let i=0; i<this.pins.length; i++) {
+                        let pin = this.pins[i];
+                        if (pin.data.svgId) {
+                            pin.backgroundElement = svg.getElementById(pin.data.svgId);
+                            pin.backgroundElement.classList.add('pin');
+                        }
+                    }
+                    resolve();
+                };
+                req.onerror = (e) => {
+                    // TODO: properly handle this error.
+                    console.error('failed to load device background for '+this.name+':', e)
+                }
+            });
         }
-        this.element.style.width = properties.width + 'mm';
-        this.element.style.height = properties.height + 'mm';
+
+        this.pins = [];
+        for (let pinData of this.data.pins) {
+            let pin = new Pin(this, pinData);
+            this.pins.push(pin);
+        }
     }
 
     async loadChildren() {
@@ -645,14 +694,12 @@ class Composite extends Device {
             this.element.appendChild(obj.element);
         }
 
-        this.pins = [];
-        for (let pinData of this.data.pins) {
-            let pin = new Pin(this, pinData);
-            this.pins.push(pin);
+        for (let i=0; i<this.pins.length; i++) {
+            let pin = this.pins[i];
             pin.connectedOnBoard = new Set();
             pin.connectedOnBoard.add(pin);
-            if (pinData.connected) {
-                for (let connection of pinData.connected) {
+            if (pin.data.connected) {
+                for (let connection of pin.data.connected) {
                     let childPin = this.objects[connection.id].getPinByName(connection.pin);
                     if (!childPin) {
                         console.error('pin undefined:', connection);
@@ -662,6 +709,12 @@ class Composite extends Device {
                     childPin.connectedOnBoard = pin.connectedOnBoard;
                 }
             }
+        }
+
+        // It may be necessary to load until the background is fully loaded
+        // before returning (as otherwise the pins are not ready).
+        if (this.backgroundLoaded) {
+            await this.backgroundLoaded;
         }
     }
 

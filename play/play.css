@@ -31,7 +31,10 @@ body:not(.running) #viewport {
     fill: #ab7d00;
 }
 #viewport .pin.hover {
-    fill: yellow;
+    /* Must use !important here otherwise styles on an element (as is common in
+     * SVGs created in Inkscape for example) won't be overridden.
+     */
+    fill: yellow !important;
 }
 
 #viewport .outline {
@@ -47,10 +50,10 @@ body:not(.running) #viewport {
     stroke: rgba(255, 255, 255, 0.9);
 }
 
-#viewport .pad {
+#viewport .pad > .pad-circle {
     fill: transparent;
 }
-#viewport .pad:hover {
+#viewport .pad:hover > .pad-circle {
     fill: #8888;
 }
 #viewport .pad-text {

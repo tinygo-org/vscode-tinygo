@@ -82,13 +82,12 @@ class Play {
             }
             if (!this.selected) return;
             if (this.moveMode == 'drag' || this.moveMode == 'add') {
-                let rect = this.selected.element.getBoundingClientRect();
                 let x = e.pageX - this.shiftX;
                 let y = e.pageY - this.shiftY;
-                x = Math.max(x, (objectBorderSize+1)*this.scale);   // bound to the left
-                x = Math.min(x, viewport.clientWidth-rect.width);   // bound to the right
-                y = Math.max(y, (objectBorderSize+1)*this.scale);   // bound to the top
-                y = Math.min(y, viewport.clientHeight-rect.height); // bound to the bottom
+                x = Math.max(x, (objectBorderSize+1)*this.scale);                   // bound to the left
+                x = Math.min(x, viewport.clientWidth-mm2px(this.selected.width));   // bound to the right
+                y = Math.max(y, (objectBorderSize+1)*this.scale);                   // bound to the top
+                y = Math.min(y, viewport.clientHeight-mm2px(this.selected.height)); // bound to the bottom
                 this.selected.properties.x = x / this.scale;
                 this.selected.properties.y = y / this.scale;
                 this.layoutObject(this.selected);
@@ -191,11 +190,41 @@ class Play {
         // Create a small (normally invisible) circle over each pad on the
         // device that a wire can be attached to.
         for (let pin of obj.pins) {
-            // Create the circle.
-            let pad = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            let pad = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             pad.classList.add('pad');
             overlay.appendChild(pad);
             this.objects[obj.id].pads.push(pad);
+
+            let circleRadius = 5;
+
+            // If set, use the background element as a hover mask so that
+            // hovering over the entire element will work, not just over the
+            // circle.
+            if (pin.backgroundElement) {
+                // Clone the background element to use as a hover mask.
+                let background = pin.backgroundElement.cloneNode();
+                pad.appendChild(background);
+                background.style.fill = 'transparent';
+
+                // The background element may be scaled differently (because it
+                // lives in a separate SVG element) so it needs to be resized to
+                // the correct size before use.
+                let rect1 = pin.backgroundElement.getBoundingClientRect();
+                let rect2 = background.getBoundingClientRect();
+                background.style.transform = 'scale(' + (rect1.height / rect2.height) + ')';
+
+                // Limit the circle radius to the size of the element, to avoid
+                // hiding other pads with the circle.
+                circleRadius = Math.min(circleRadius, Math.min(rect1.width, rect1.height) / 2 * 1.3);
+            }
+
+            // Create the circle.
+            let circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.classList.add('pad-circle');
+            circle.setAttribute('cx', pin.data.x + 'mm');
+            circle.setAttribute('cy', pin.data.y + 'mm');
+            circle.setAttribute('r', circleRadius);
+            pad.appendChild(circle);
 
             // Create a label when hovering over the circle.
             let padTextLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -327,9 +356,7 @@ class Play {
         for (let i=0; i<obj.pins.length; i++) {
             let pin = obj.pins[i];
             let pad = this.objects[obj.id].pads[i];
-            pad.setAttribute('cx', (pin.data.x * this.scale) + 'mm');
-            pad.setAttribute('cy', (pin.data.y * this.scale) + 'mm');
-            pad.setAttribute('r', 5 * this.scale);
+            pad.style.transform = 'scale(' + this.scale + ')';
 
             let padTextLayer = pad.nextElementSibling;
             // Convert from mm to px by multiplying with (96 / 25.4).
@@ -491,7 +518,9 @@ class Play {
             }
             connectionDiv.addEventListener('mouseenter', (e) => {
                 for (let p of pin.connected) {
-                    if (p.element)
+                    if (p.backgroundElement)
+                        p.backgroundElement.classList.add('hover');
+                    else if (p.element)
                         p.element.classList.add('hover');
                 }
                 for (let span of spans) {
@@ -500,7 +529,9 @@ class Play {
             });
             connectionDiv.addEventListener('mouseleave', (e) => {
                 for (let p of pin.connected) {
-                    if (p.element)
+                    if (p.backgroundElement)
+                        p.backgroundElement.classList.remove('hover');
+                    else if (p.element)
                         p.element.classList.remove('hover');
                 }
                 for (let span of spans) {
@@ -605,6 +636,14 @@ async function createObject(parent, properties) {
         console.error('properties:', properties);
         throw 'unknown device';
     }
+}
+
+// Convert CSS millimeters to CSS pixels.
+// It's important to note here that CSS millimeters have little to do with
+// actual on-screen millimeters, but it's somewhat close on most displays.
+function mm2px(mm) {
+    // Source: https://stackoverflow.com/a/36600437/559350
+    return mm * (96 / 25.4);
 }
 
 async function init() {
