@@ -377,7 +377,6 @@ class Compiler {
 		const mkdir = util.promisify(fs.mkdir);
 		const readFile = util.promisify(fs.readFile);
 
-		let folder = vscode.workspace.workspaceFolders[0];
 		let storagePath = this.context.storagePath || '/tmp';
 
 		// Compile to WebAssembly.
@@ -387,9 +386,9 @@ class Compiler {
 		const outputPath = path.join(storagePath, 'vscode-tinygo-build-' + (Math.random() * 1e12).toFixed() + '.wasm');
 		this.promise = new Promise((resolve, reject) => {
 			// Both -opt=1 and -no-debug improve compile time slightly.
-			let process = cp.execFile('tinygo', ['build', '-o', outputPath, '-tags', this.buildTags.join(','), '-opt=1', '-no-debug', this.importPath],
+			let process = cp.execFile('tinygo', ['build', '-o', outputPath, '-tags', this.buildTags.join(','), '-opt=1', '-no-debug'],
 			{
-				cwd: folder.uri.fsPath,
+				cwd: this.importPath,
 			}, (error, stdout, stderr) => {
 				if (error) {
 					reject(error);
