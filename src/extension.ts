@@ -317,6 +317,11 @@ function getPreviewHTML(baseURL: string): string {
   </head>
   <body class="vscode">
     <svg id="viewport">
+      <defs>
+        <filter id="device-shadow">
+          <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#888c"/>
+        </filter>
+      </defs>
       <g class="objects"></g>
       <g class="wires"></g>
       <g class="overlays"></g>

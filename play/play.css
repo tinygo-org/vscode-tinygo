@@ -49,6 +49,9 @@ body:not(.running) #viewport {
 #viewport .device-wrapper.selected > .outline {
     stroke: rgba(255, 255, 255, 0.9);
 }
+#viewport .device-wrapper {
+    filter: url(#device-shadow);
+}
 
 #viewport .pad > .pad-circle {
     fill: transparent;
