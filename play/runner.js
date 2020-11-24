@@ -52,8 +52,8 @@ class Runner {
                         0: 'input',
                         1: 'output',
                     }[mode]),
-                __tinygo_spi_configure: (bus, sck, mosi, miso) => {
-                    this.mcu.getSPI(bus).configure(this.mcu.getPin(sck), this.mcu.getPin(mosi), this.mcu.getPin(miso));
+                __tinygo_spi_configure: (bus, sck, sdo, sdi) => {
+                    this.mcu.configureSPI(bus, sck, sdo, sdi);
                 },
                 __tinygo_spi_transfer: (bus, w) => {
                     return this.mcu.getSPI(bus).transfer(w);

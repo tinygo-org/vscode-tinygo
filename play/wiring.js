@@ -283,3 +283,28 @@ class Wire {
         this.layout();
     }
 }
+
+// SPIController is a SPI controller, usually used on a microcontroller to
+// control peripherals.
+class SPIController {
+    constructor() {
+        this.sck = null;
+        this.sdo = null;
+        this.sdi = null;
+    }
+
+    configure(sck, sdo, sdi) {
+        this.sck = sck;
+        this.sdo = sdo;
+        this.sdi = sdi;
+    }
+
+    transfer(b) {
+        for (let pin of this.sck.connected) {
+            if ('transferSPI' in pin.device) {
+                pin.device.transferSPI(b, this.sck, this.sdo, this.sdi);
+                // TODO: receive data back.
+            }
+        }
+    }
+}

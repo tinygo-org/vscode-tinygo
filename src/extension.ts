@@ -344,6 +344,7 @@ function getPreviewHTML(baseURL: string): string {
       <div id="add-device-dropdown">
         <div class="device" data-type="ws2812">WS2812</div>
         <div class="device" data-type="led">LED</div>
+        <div class="device" data-type="st7789">ST7789 240x240 display</div>
       </div>
     </div>
   </body>

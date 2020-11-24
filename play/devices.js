@@ -94,6 +94,7 @@ class Microcontroller extends Device {
         for (let pinData of data.pins) {
             this.pins.push(new Pin(this, pinData));
         }
+        this.spiBuses = {};
 
         this.runner = null;
     }
@@ -119,6 +120,20 @@ class Microcontroller extends Device {
         }
         this.runner = new Runner(this, logger);
         await this.runner.run(binary);
+    }
+
+    // getSPI returns a SPI controller (master).
+    getSPI(number) {
+        if (!(number in this.spiBuses)) {
+            this.spiBuses[number] = new SPIController();
+        }
+        return this.spiBuses[number];
+    }
+
+    // configureSPI configures a SPI controller with the given pins, which
+    // should be numeric values specific for this MCU.
+    configureSPI(number, sck, sdo, sdi) {
+        this.getSPI(number).configure(this.getPin(sck), this.getPin(sdo), this.getPin(sdi));
     }
 }
 
@@ -376,6 +391,198 @@ class WS2812 extends Device {
     }
 }
 
+// ST7789 is a chip used on SPI connected displays.
+class ST7789 extends Device {
+    constructor(parent, properties) {
+        super(parent, properties, {
+            name:         'ST7789',
+            width:        26,
+            height:       26,
+            pixelWidth:   240,
+            pixelHeight:  240,
+            columnOffset: 0,
+            rowOffset:    80,
+        });
+
+        this.sck = new Pin(this, {name: 'SCK', x: 2.54,  y: -1}), // serial clock
+        this.sdi = new Pin(this, {name: 'SDI', x: 5.08,  y: -1}), // serial data in
+        this.dc = new Pin(this, {name: 'DC',  x: 7.62,  y: -1}), // data/command
+        this.cs = new Pin(this, {name: 'CS',  x: 10.16, y: -1}), // chip select
+        this.pins = [this.sck, this.sdi, this.dc, this.cs];
+        // TODO: chip select, maybe LED pins
+
+        let base = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        base.setAttribute('fill', '#222');
+        base.setAttribute('width', this.data.width+'mm');
+        base.setAttribute('height', this.data.height+'mm');
+        this.element.appendChild(base);
+
+        let foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+        foreignObject.setAttribute('x', '1mm');
+        foreignObject.setAttribute('y', '1mm');
+        foreignObject.setAttribute('width', '24mm');
+        foreignObject.setAttribute('height', '24mm');
+        this.element.appendChild(foreignObject);
+
+        let display = document.createElement('canvas');
+        display.setAttribute('width', this.data.pixelWidth);
+        display.setAttribute('height', this.data.pixelHeight);
+        display.style.width = '24mm';
+        display.style.height = '24mm';
+        foreignObject.appendChild(display);
+
+        this.ctx = display.getContext('2d');
+        this.ctx.fillStyle = 'black';
+        this.ctx.fillRect(0, 0, this.data.pixelWidth, this.data.pixelHeight);
+
+        this.inReset = false;
+        this.command = 0x00; // no-op
+        this.dataBuf = null;
+        this.reset();
+    }
+
+    // Reset all registers to their default state.
+    reset() {
+        this.xs = 0;
+        this.xe = 0xef; // note: depends on MV value
+        this.ys = 0;
+        this.ye = 0x13f; // note: depends on MV value
+        this.inverse = false; // display inversion off
+
+        // Give these a sensible default value. Will be updated with the RAMWR
+        // command.
+        this.x = 0;
+        this.y = 0;
+        this.dataByte = null;
+        this.currentColor = -1;
+    }
+
+    transferSPI(b, sck, sdi) {
+        // Check whether the signal is received correctly.
+        if (!sck.connected.has(this.sck) || !sdi.connected.has(this.sdi))
+            return;
+
+        // Check the chip select signal.
+        if (this.cs.isHigh()) {
+            return;
+        }
+
+        if (this.dc.isHigh()) { // received data
+            if (this.dataBuf !== null) {
+                this.dataBuf.push(b);
+            }
+            if (this.command == 0x2a && this.dataBuf.length == 4) {
+                // CASET: column address set
+                this.xs = (this.dataBuf[0] << 8) + this.dataBuf[1];
+                this.xe = (this.dataBuf[2] << 8) + this.dataBuf[3];
+                if (this.xs > this.xe) {
+                    console.error('st7789: xs must be smaller than or equal to xe');
+                }
+            } else if (this.command == 0x2b && this.dataBuf.length == 4) {
+                // RASET: row address set
+                this.ys = (this.dataBuf[0] << 8) + this.dataBuf[1];
+                this.ye = (this.dataBuf[2] << 8) + this.dataBuf[3];
+                if (this.ys > this.ye) {
+                    console.error('st7789: ys must be smaller than or equal to ye');
+                }
+            } else if (this.command == 0x2c) {
+                // RAMWR: memory write
+                if (this.dataByte === null) {
+                    // First byte received. Record this byte for later use.
+                    this.dataByte = b;
+                } else {
+                    // Second byte received.
+                    let word = (this.dataByte << 8) + b;
+                    this.dataByte = null;
+
+                    // Set the correct color, if it was different from the previous
+                    // color.
+                    if (this.currentColor != word) {
+                        this.currentColor = word;
+                        let red = Math.round((word >> 11) * 255 / 31);
+                        let green = Math.round(((word >> 5) & 63) * 255 / 63);
+                        let blue = Math.round((word & 31) * 255 / 31);
+                        this.ctx.fillStyle = 'rgb(' + red + ',' + green + ',' + blue + ')';
+                    }
+
+                    // Draw the pixel.
+                    let x = this.x - (this.data.columnOffset || 0);
+                    let y = this.y - (this.data.rowOffset || 0);
+                    if (x >= 0 && y >= 0 && x < this.data.pixelWidth && y < this.data.pixelHeight) {
+                        this.ctx.fillRect(x, y, 1, 1);
+                    }
+
+                    // Increment row/column address.
+                    this.x += 1;
+                    if (this.x > this.xe) {
+                        this.x = this.xs;
+                        this.y += 1;
+                    }
+                    if (this.y > this.ye) {
+                        this.y = this.ys;
+                    }
+                }
+            } else if (this.command == 0x36 && this.dataBuf.length == 1) {
+                // MADCTL: memory data access control
+                // Controls how the display is updated, and allows rotating it.
+                if (this.dataBuf[0] != 0xc0) {
+                    console.warn('st7789: unknown MADCTL value:', this.dataBuf[0]);
+                }
+            } else if (this.command == 0x3a && this.dataBuf.length == 1) {
+                // COLMOD: color format
+                if (this.dataBuf[0] != 0x55) {
+                    // Only the 16-bit interface is currently supported.
+                    console.warn('st7789: unknown COLMOD value:', this.dataBuf[0]);
+                }
+            }
+        } else {
+            this.command = b;
+            this.dataBuf = null;
+            if (b == 0x01) {
+                // SWRESET: re-initialize all registers
+                this.reset();
+            } else if (b == 0x11) {
+                // SLPOUT: nothing to do
+            } else if (b == 0x13) {
+                // NORON: normal display mode on
+                // Sets the display to normal mode (as opposed to partial mode).
+                // Defaults to on, so nothing to do here.
+            } else if (b == 0x20) {
+                // INVOFF: display inversion off
+                this.inverse = false;
+            } else if (b == 0x21) {
+                // INVON: display inversion on
+                this.inverse = true;
+            } else if (b == 0x29) {
+                // DISPON: display on
+                // The default is to disable the display, this command enables it.
+                // Ignore it, it's not super important in simulation (but should
+                // eventually be implemented by blanking the display when off).
+            } else if (b == 0x2a || b == 0x2b) {
+                // CASET: column address set
+                // RASET: row address set
+                this.dataBuf = [];
+            } else if (b == 0x2c) {
+                // RAMWR: memory write
+                this.x = this.xs;
+                this.y = this.ys;
+                this.dataByte = null;
+            } else if (b == 0x3a) {
+                // COLMOD: interface pixel format
+                this.dataBuf = [];
+            } else if (b == 0x36) {
+                // MADCTL: memory data access control
+                // It can be used to rotate/swap the display (see 8.12 Address Control
+                // in the PDF), but has not yet been implemented.
+                this.dataBuf = [];
+            } else {
+                // unknown command
+                console.log('st7789: unknown command:', b);
+            }
+        }
+    }
+}
+
 class Composite extends Device {
     constructor(parent, properties, data) {
         super(parent, properties, data);
@@ -471,6 +678,7 @@ let devices = {
     mcu: Microcontroller,
     led: LED,
     ws2812: WS2812,
+    st7789: ST7789,
 };
 
 function hasParent(element) {
