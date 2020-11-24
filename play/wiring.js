@@ -94,6 +94,26 @@ class Pin {
         return connected;
     }
 
+    // isHigh returns true if this pin is high, false if it's low or floating.
+    isHigh() {
+        for (let pin of this.connected) {
+            if (pin.mode == 'output') {
+                return pin.high; // high or low
+            }
+        }
+        return false; // floating
+    }
+
+    // isLow returns true if this pin is low, false if it's high or floating.
+    isLow() {
+        for (let pin of this.connected) {
+            if (pin.mode == 'output') {
+                return !pin.high; // high or low
+            }
+        }
+        return false; // floating
+    }
+
     setMode(mode) {
         this.mode = mode;
         this.update();
