@@ -311,6 +311,7 @@ function getPreviewHTML(baseURL: string): string {
     <meta charset="utf-8"/>
     <base href="${baseURL}"/>
     <link rel="stylesheet" href="play.css"/>
+    <script src="wiring.js" defer></script>
     <script src="devices.js" defer></script>
     <script src="runner.js" defer></script>
     <script src="play.js" defer></script>
