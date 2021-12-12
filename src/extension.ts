@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import cp = require('child_process');
-import util = require('util');
+import * as cp from 'child_process';
+import * as util from 'util';
+import * as preview from './preview';
 
 let statusbarItem: vscode.StatusBarItem;
 
@@ -17,6 +18,16 @@ export async function activate(context: vscode.ExtensionContext) {
 	statusbarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 49);
 	statusbarItem.command = 'vscode-tinygo.selectTarget';
 	updateStatusBar();
+
+	// Add 'preview' button to appropriate source files.
+	preview.updateStatus(context);
+	context.subscriptions.push(vscode.commands.registerCommand('vscode-tinygo.showPreviewToSide', async (uri: vscode.Uri) => {
+		preview.createNewPane(context, uri);
+	}));
+
+	// Make sure these 'preview' panels are restored when VS Code is closed and
+	// then opened.
+	vscode.window.registerWebviewPanelSerializer('vscode-tinygo.preview', new preview.PreviewSerializer(context));
 
 	// Register the command, _after_ the list of targets has been read. This
 	// makes sure the user will never see an empty list.
@@ -81,8 +92,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		config.update('toolsEnvVars', envVars, vscode.ConfigurationTarget.Workspace);
 
 		// Update status bar.
-		context.workspaceState.update('target', target);
+		context.workspaceState.update('tinygo-target', target);
 		updateStatusBar();
+		preview.updateStatus(context);
 
 		// Move the just picked target to the top of the list.
 		moveElementToFront(targets, target);
@@ -103,7 +115,7 @@ export function deactivate() {
 // updateStatusBar updates the TinyGo sign in the status bar with the currently
 // selected target.
 function updateStatusBar() {
-	let target = workspaceState.get('target', '-');
+	let target = workspaceState.get('tinygo-target', '-');
 	if (target != '-') {
 		statusbarItem.text = 'TinyGo: ' + target;
 	} else {

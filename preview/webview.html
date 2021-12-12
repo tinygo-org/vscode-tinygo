@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <!-- make all URLs relative to the playground directory -->
+    <base href="{PLAYGROUND_PATH}"/>
+    <link rel="stylesheet" href="simulator.css"/>
+    <link rel="stylesheet" href="../webview.css"/>
+    <meta http-equiv="Content-Security-Policy" content="{CSP}"/>
+    <script src="simulator.js" defer></script>
+    <script src="../webview.js" defer></script>
+  </head>
+  <body>
+    <svg id="schematic">
+      <g id="schematic-wrapper" style="transform: translate(50%, 50%)">
+        <g id="schematic-parts"></g>
+        <g id="schematic-wires"></g>
+      </g>
+    </svg>
+    <div id="panels">
+      <div class="tabbar">
+        <span class="tab active" data-for="#terminal-box"><a>Terminal</a></span>
+        <span class="tab" data-for="#properties"><a>Properties</a></span>
+        <span class="tab" data-for="#add"><a>Add</a></span>
+      </div>
+      <div class="tabcontent active" id="terminal-box">
+        <textarea id="terminal" readonly></textarea>
+      </div>
+      <div class="tabcontent" id="properties">
+        <div class="content"></div>
+      </div>
+      <div class="tabcontent" id="add">
+        Loading...
+      </div>
+    </div>
+  </body>
+</html>

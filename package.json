@@ -1,7 +1,7 @@
 {
 	"name": "vscode-tinygo",
 	"displayName": "TinyGo",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"publisher": "tinygo",
 	"description": "TinyGo support for Visual Studio Code",
 	"license": "BSD-3-Clause",
@@ -19,7 +19,9 @@
 	},
 	"activationEvents": [
 		"onLanguage:go",
-		"onCommand:vscode-tinygo.selectTarget"
+		"onCommand:vscode-tinygo.selectTarget",
+		"onCommand:vscode-tinygo.showPreviewToSide",
+		"onWebviewPanel:vscode-tinygo.preview"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
@@ -27,8 +29,22 @@
 			{
 				"command": "vscode-tinygo.selectTarget",
 				"title": "TinyGo target"
+			},
+			{
+				"command": "vscode-tinygo.showPreviewToSide",
+				"title": "TinyGo Preview",
+				"icon": "$(open-preview)"
 			}
-		]
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"when": "resourceLangId == go && tinygoHasPreview",
+					"command": "vscode-tinygo.showPreviewToSide",
+					"group": "navigation"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"compile": "tsc -p ./",

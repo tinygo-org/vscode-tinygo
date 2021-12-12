@@ -1,0 +1,3 @@
+[submodule "preview/playground"]
+	path = preview/playground
+	url = git@github.com:tinygo-org/playground.git

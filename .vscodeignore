@@ -11,3 +11,13 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 webpack.config.js
+preview/playground/resources
+preview/playground/.*
+preview/playground/*.tar.gz
+preview/playground/*.go
+preview/playground/dashboard.*
+preview/playground/Dockerfile
+preview/playground/go.*
+preview/playground/Makefile
+preview/playground/index.html
+preview/playground/project.js
