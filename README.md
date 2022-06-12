@@ -6,18 +6,17 @@ This is a simple extension to add TinyGo support to Visual Studio Code.
 
 ## Features
 
-Right now the only feature this extension supports is setting the right environment variables in the `.vscode/settings.json` of your workspace. For example, it may set the following configuration to work with the [BBC micro:bit](https://microbit.org/):
+The following features are supported.
 
-```json
-{
-    "go.toolsEnvVars": {
-        "GOROOT": "/home/user/.cache/tinygo/goroot-go1.14-f930d5b5f36579e8cbd1c139012b3d702281417fb6bdf67303c4697195b9ef1f-syscall",
-        "GOFLAGS": "-tags=cortexm,baremetal,linux,arm,nrf51822,nrf51,nrf,microbit,tinygo,gc.conservative,scheduler.tasks"
-    }
-}
-```
+  * Set the right environment variables in the `.vscode/settings.json` of your workspace
+  * Add support for 'preview' functionality
+  * Add debug settings to `.vscode/settings.json`, `.vscode/launch.json` and `.vscode/tasks.json` of your workspace
 
 To use it, click on the `TinyGo` status bar element at the bottom of the screen and select a target. Alternatively, you could open the [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) and search for `TinyGo target`.
+
+Debugging can be started via `Run > StartDebugging (F5)`. At this time, debug using openocd is supported. The interface used by openocd can be changed from the following.
+
+![settings](images/settings.png)
 
 Notes:
 
@@ -30,6 +29,10 @@ This extension depends on the following:
 
   * The [Go extension for VS Code](https://marketplace.visualstudio.com/items?itemName=golang.go). This extension should be automatically installed as a dependency.
   * The TinyGo compiler, version 0.15 or later. See [installation instructions for your operating system](https://tinygo.org/getting-started/).
+  * The [Cortex-Debug extension for VS Code](https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug). This extension should be automatically installed as a dependency.
+  * for debug support
+    * The TinyGo compiler, version 0.23 later. See [installation instructions for your operating system](https://tinygo.org/getting-started/).
+    * See [Debugging - Debug Tinygo programs using GDB](https://tinygo.org/docs/guides/debugging/). At least tinygo gdb must work.
 
 ## Development
 
