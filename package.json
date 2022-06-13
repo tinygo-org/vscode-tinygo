@@ -1,7 +1,7 @@
 {
 	"name": "vscode-tinygo",
 	"displayName": "TinyGo",
-	"version": "0.3.0",
+	"version": "0.4.0-dev1",
 	"publisher": "tinygo",
 	"description": "TinyGo support for Visual Studio Code",
 	"license": "BSD-3-Clause",
@@ -9,7 +9,7 @@
 	"categories": [
 		"Programming Languages"
 	],
-	"extensionDependencies": ["golang.go"],
+	"extensionDependencies": ["golang.go", "marus25.cortex-debug"],
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/tinygo-org/vscode-tinygo"
@@ -44,6 +44,16 @@
 					"group": "navigation"
 				}
 			]
+		},
+		"configuration": {
+			"title": "TinyGo Configuration",
+			"properties": {
+				"tinygo.openocdInterface": {
+					"description": "which hardware programmer to use (ex: jlink, cmsis-dap, stlink-v2, ...)",
+					"type": "string",
+					"default": "cmsis-dap"
+				}
+			}
 		}
 	},
 	"scripts": {
