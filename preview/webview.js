@@ -48,6 +48,10 @@ onmessage = async function(e) {
         schematic.update(e.data.updates);
     } else if (e.data.type === 'error') {
         terminal.showError(e.data.message);
+    } else if (e.data.type === 'connections') {
+        schematic.updateConnections(e.data.pinLists);
+    } else if (e.data.type === 'speed') {
+        schematic.setSpeed(e.data.speed);
     } else {
         console.log('unknown message:', e.data);
     }

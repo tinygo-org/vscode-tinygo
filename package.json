@@ -1,7 +1,7 @@
 {
 	"name": "vscode-tinygo",
 	"displayName": "TinyGo",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"publisher": "tinygo",
 	"description": "TinyGo support for Visual Studio Code",
 	"license": "BSD-3-Clause",

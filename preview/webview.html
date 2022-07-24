@@ -12,6 +12,9 @@
     <script src="../webview.js" defer></script>
   </head>
   <body>
+    <div id="schematic-buttons">
+      <button id="schematic-button-pause" class="codicon schematic-button" title="Pause/resume the simulation">&#xead1;</button>
+    </div>
     <svg id="schematic">
       <g id="schematic-wrapper" style="transform: translate(50%, 50%)">
         <g id="schematic-parts"></g>
@@ -34,5 +37,6 @@
         Loading...
       </div>
     </div>
+    <div id="schematic-tooltip"></div>
   </body>
 </html>
