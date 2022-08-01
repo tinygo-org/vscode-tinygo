@@ -48,7 +48,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		});
 		if (!target) return;
 
-		// Obtain information about this target (GOROOT, build tags).
+		// Obtain information about this target (GOOS, GOARCH, GOROOT, build tags).
+		let goos = '';
+		let goarch = '';
 		let goroot = '';
 		let buildTags = '';
 		if (target != '-') {
@@ -64,6 +66,10 @@ export async function activate(context: vscode.ExtensionContext) {
 						goroot = value;
 					} else if (key == 'build tags') {
 						buildTags = value;
+					} else if (key == 'GOOS') {
+						goos = value;
+					} else if (key == 'GOARCH') {
+						goarch = value;
 					}
 				})
 			} catch(err) {
@@ -87,6 +93,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		// This will automatically reload gopls.
 		const config = vscode.workspace.getConfiguration('go', null);
 		let envVars = config.get<NodeJS.Dict<string>>('toolsEnvVars', {});
+		envVars.GOOS = goos ? goos: undefined;
+		envVars.GOARCH = goarch ? goarch: undefined;
 		envVars.GOROOT = goroot ? goroot: undefined;
 		envVars.GOFLAGS = buildTags ? "-tags="+(buildTags.split(' ').join(',')) : undefined;
 		config.update('toolsEnvVars', envVars, vscode.ConfigurationTarget.Workspace);
