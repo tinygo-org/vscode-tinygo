@@ -11,6 +11,8 @@ Right now the only feature this extension supports is setting the right environm
 ```json
 {
     "go.toolsEnvVars": {
+        "GOOS": "linux",
+        "GOARCH": "arm",
         "GOROOT": "/home/user/.cache/tinygo/goroot-go1.14-f930d5b5f36579e8cbd1c139012b3d702281417fb6bdf67303c4697195b9ef1f-syscall",
         "GOFLAGS": "-tags=cortexm,baremetal,linux,arm,nrf51822,nrf51,nrf,microbit,tinygo,gc.conservative,scheduler.tasks"
     }
