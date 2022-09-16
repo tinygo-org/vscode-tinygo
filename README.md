@@ -35,6 +35,8 @@ This extension depends on the following:
 
 ## Development
 
+Make sure to checkout `preview/playground` [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+
 For easy development, you can modify the package.json file a bit:
 
 ```diff
