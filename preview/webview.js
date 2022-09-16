@@ -46,6 +46,10 @@ onmessage = async function(e) {
     } else if (e.data.type === 'update') {
         // Received updates. Apply them to the webview.
         schematic.update(e.data.updates);
+    } else if (e.data.type === 'connections') {
+        schematic.updateConnections(e.data.pinLists);
+    } else if (e.data.type === 'speed') {
+        schematic.setSpeed(e.data.speed);
     } else if (e.data.type === 'error') {
         terminal.showError(e.data.message);
     } else {
