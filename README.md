@@ -35,16 +35,72 @@ This extension depends on the following:
 
 ## Development
 
-Make sure to checkout `preview/playground` [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+Make sure to checkout `preview/playground` [git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules). You can do this with the following command:
 
-For easy development, you can modify the package.json file a bit:
+    git submodule update --init
 
-```diff
--       "main": "./dist/extension.js",
-+       "main": "./out/extension.js",
+For development, you can use the following .vscode/tasks.json file:
+
+```json
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "npm",
+            "script": "watch",
+            "problemMatcher": "$tsc-watch",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "never"
+            },
+            "group": "build",
+            "label": "npm: watch",
+            "detail": "tsc -watch -p ./"
+        },
+        {
+            "type": "npm",
+            "script": "compile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "label": "npm: compile",
+            "detail": "tsc -p ./",
+            "dependsOn": ["webworker.bundle.js"],
+        },
+        {
+            "type": "shell",
+            "command": "make",
+            "args": ["preview/playground/worker/webworker.bundle.js"],
+            "group": "build",
+            "label": "webworker.bundle.js",
+        }
+    ]
+}
 ```
 
-There is probably a better way, but this works.
+and the following .vscode/launch.json:
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/out/**/*.js"
+            ],
+            "preLaunchTask": "${defaultBuildTask}"
+        }
+    ]
+}
+```
 
 To create an extension as a package, run the following command:
 

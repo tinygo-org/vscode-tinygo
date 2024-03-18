@@ -1,23 +1,13 @@
-.vscode/**
-.vscode-test/**
-out/
-src/**
-images/screenshot.png
-.gitignore
-.yarnrc
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/.eslintrc.json
-**/*.map
-**/*.ts
-webpack.config.js
-preview/playground/resources
-preview/playground/.*
-preview/playground/*.tar.gz
-preview/playground/*.go
-preview/playground/dashboard.*
-preview/playground/Dockerfile
-preview/playground/go.*
-preview/playground/Makefile
-preview/playground/index.html
-preview/playground/project.js
+# Ignore everything
+**
+
+# Include specific files
+!LICENSE
+!out/*.js
+!images/tinygo-logo.png
+!preview/webview.*
+!preview/playground/LICENSE
+!preview/playground/simulator.*
+!preview/playground/parts/
+!preview/playground/resources/
+!preview/playground/worker/webworker.bundle.js

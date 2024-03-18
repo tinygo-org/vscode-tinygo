@@ -1,7 +1,7 @@
 {
 	"name": "vscode-tinygo",
 	"displayName": "TinyGo",
-	"version": "0.4.0",
+	"version": "0.5.0",
 	"publisher": "tinygo",
 	"description": "TinyGo support for Visual Studio Code",
 	"license": "BSD-3-Clause",
@@ -15,15 +15,13 @@
 		"url": "https://github.com/tinygo-org/vscode-tinygo"
 	},
 	"engines": {
-		"vscode": "^1.48.0"
+		"vscode": "^1.75.0"
 	},
 	"activationEvents": [
 		"onLanguage:go",
-		"onCommand:vscode-tinygo.selectTarget",
-		"onCommand:vscode-tinygo.showPreviewToSide",
 		"onWebviewPanel:vscode-tinygo.preview"
 	],
-	"main": "./dist/extension.js",
+	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
@@ -47,15 +45,12 @@
 		}
 	},
 	"scripts": {
+		"vscode:prepublish": "npm run compile && make webworker.bundle.js",
 		"compile": "tsc -p ./",
-		"lint": "eslint src --ext ts",
 		"watch": "tsc -watch -p ./",
 		"pretest": "npm run compile && npm run lint",
-		"test": "node ./out/test/runTest.js",
-		"vscode:prepublish": "webpack --mode production",
-		"webpack": "webpack --mode development",
-		"webpack-dev": "webpack --mode development --watch",
-		"test-compile": "tsc -p ./"
+		"lint": "eslint src --ext ts",
+		"test": "vscode-test"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.3",
@@ -66,11 +61,8 @@
 		"@typescript-eslint/parser": "^3.8.0",
 		"eslint": "^7.6.0",
 		"glob": "^7.1.6",
-		"mocha": "^8.1.3",
+		"mocha": "^10.3.0",
 		"ts-loader": "^8.0.3",
-		"typescript": "^4.0.2",
-		"vscode-test": "^1.4.0",
-		"webpack": "^4.44.1",
-		"webpack-cli": "^3.3.12"
+		"typescript": "^4.0.2"
 	}
 }

@@ -1,73 +1,69 @@
 'use strict';
 
-let messageHandler;
-let schematic;
+import { Simulator } from "./playground/simulator.js";
 
 // Obtain a handle to the VS Code API.
 let vscode = acquireVsCodeApi();
 
-// Check whether we're actually restoring panel state instead of loading a
-// completely new preview panel.
-let state = vscode.getState();
-if (state) {
-    // We've got a state from a previous run.
-    // Restore it and signal we're ready.
-    start(state);
-}
+let simulator = null;
+let state = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Check whether we're actually restoring panel state instead of loading a
+    // completely new preview panel.
+    state = vscode.getState();
+    if (state) {
+        // We've got a state from a previous run.
+        // Restore it and signal we're ready.
+        init(state);
+    }
+})
 
 onmessage = async function(e) {
-    if (e.data.type === 'start') {
+    if (e.data.type === 'init') {
         // This is a fresh new webview, not one restored from an existing state.
-        // Therefore, save the state to start with.
+        // It needs to be saved now so that closing and reopening VSCode will
+        // work correctly.
         state = e.data.state;
         saveState();
-        start(e.data.state);
+        init(e.data.state);
     } else if (e.data.type === 'compiling') {
-        document.querySelector('#schematic').classList.add('compiling');
-        terminal.clear('Compiling...');
-    } else if (e.data.type === 'loading') {
-        // Compiled, loading the program now.
-        terminal.clear('Loading...');
-    } else if (e.data.type === 'started') {
-        // Message is sent right before actually starting the program.
-        document.querySelector('#schematic').classList.remove('compiling');
-        terminal.clear('Running...');
-    } else if (e.data.type === 'notifyUpdate') {
-        // Worker notifies us that there are pending updates.
-        // Wait for the browser to tell us to update the screen.
-        requestAnimationFrame(() => {
-            vscode.postMessage({
-                type: 'getUpdate',
-            });
-        });
-    } else if (e.data.type === 'properties') {
-        // Set properties in the properties panel at the bottom.
-        schematic.setProperties(e.data.properties);
-    } else if (e.data.type === 'update') {
-        // Received updates. Apply them to the webview.
-        schematic.update(e.data.updates);
+        // Reinitialize the simulator (draw new parts etc).
+        simulator.refresh();
+    } else if (e.data.type === 'run') {
+        // We get a plain old array from VSCode because the buffer is serialized to
+        // JSON. Before sending it along to the worker, convert it to a typed array.
+        // There might be a more efficient way to do this (such as loading the
+        // binary from within the worker), but this works.
+        let buf = new Uint8Array(e.data.binary.data);
+        // Start the program.
+        simulator.run(buf);
     } else if (e.data.type === 'error') {
-        terminal.showError(e.data.message);
-    } else if (e.data.type === 'connections') {
-        schematic.updateConnections(e.data.pinLists);
-    } else if (e.data.type === 'speed') {
-        schematic.setSpeed(e.data.speed);
+        simulator.showCompilerError(e.data.message);
     } else {
         console.log('unknown message:', e.data);
     }
 };
 
-async function start(state) {
-    schematic = new Schematic(state);
-    await schematic.refresh();
+async function init(state) {
+    // Get a blob URL for the web worker.
+    // Apparently the only reasonable way to do this is by using a blob URL that
+    // contains all JS files concatenated together.
+    // https://code.visualstudio.com/api/extension-guides/webview#using-web-workers
+    let result = await fetch('worker/webworker.bundle.js')
+    if (!result.ok) {
+        throw `could not load Web Worker blob URL: ${result.statusText}`;
+    }
+    let blob = await result.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    // Initialize the schematic.
+    let root = document.querySelector('#schematic-root');
+    simulator = new Simulator(blobUrl, saveState);
+    await simulator.init(root, state)
     vscode.postMessage({
         type: 'ready',
-        workerConfig: schematic.configForWorker(),
     });
-}
-
-function workerPostMessage(message) {
-    vscode.postMessage(message);
 }
 
 function saveState() {

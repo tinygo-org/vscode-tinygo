@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import {Worker} from 'worker_threads';
 import {promises as fs} from 'fs';
 import {Compiler} from './compiler';
 
@@ -12,7 +11,7 @@ let boards = [
     'circuitplay-express',
     'hifive1b',
     'microbit',
-    'pinetime-devkit0',
+    'pinetime',
     'reelboard',
 ];
 
@@ -57,7 +56,7 @@ export async function createNewPane(context: vscode.ExtensionContext, uri: vscod
     // Construct the initial state for the webview.
     let target = context.workspaceState.get('tinygo-target', '-');
     panel.webview.postMessage({
-        type: 'start',
+        type: 'init',
         state: {
             parts: {
                 main: {
@@ -83,7 +82,12 @@ export class PreviewSerializer implements vscode.WebviewPanelSerializer {
     }
     async deserializeWebviewPanel(panel: vscode.WebviewPanel, state: any) {
         if (!state) {
+            // Should not happen, it probably indicates a bug somewhere.
+            // It _might_ happen when closing VSCode before the webview is fully
+            // loaded.
+            console.warn('no saved state for the webview?', state);
             panel.dispose();
+            return;
         }
         await createPanel(this.context, panel, state.target, state.packageFullPath);
     }
@@ -107,7 +111,7 @@ async function createPanel(context: vscode.ExtensionContext, panel: vscode.Webvi
     // Also, the worker shouldn't be sending invalid styles anyway (if the
     // worker is hijacked, security is breached anyway).
     // More information: https://stackoverflow.com/questions/30653698/#31759553
-    html = html.replace('{CSP}', `default-src 'none'; script-src ${panel.webview.cspSource}; style-src ${panel.webview.cspSource} 'unsafe-inline'; connect-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}`);
+    html = html.replace('{CSP}', `default-src 'none'; script-src ${panel.webview.cspSource} blob: 'unsafe-eval'; style-src ${panel.webview.cspSource} 'unsafe-inline'; connect-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}`);
     panel.webview.html = html;
 
     // Wrapper postMessage that ignores messages after the panel is disposed.
@@ -123,11 +127,9 @@ async function createPanel(context: vscode.ExtensionContext, panel: vscode.Webvi
     panel.webview.onDidReceiveMessage(message => {
         if (message.type === 'ready') {
             // Start compiling the binary that will be displayed in the webview.
-            workerConfig = message.workerConfig;
             runCompiler();
         } else {
-            // Probably intended for the worker.
-            worker?.postMessage(message);
+            console.warn('unknown message from panel:', message);
         }
     });
 
@@ -137,10 +139,6 @@ async function createPanel(context: vscode.ExtensionContext, panel: vscode.Webvi
             if (compiler) {
                 compiler.kill();
                 compiler = undefined;
-            }
-            if (worker) {
-                worker.terminate();
-                worker = undefined;
             }
             watcher.dispose();
             panelDisposed = true;
@@ -164,18 +162,12 @@ async function createPanel(context: vscode.ExtensionContext, panel: vscode.Webvi
         context.subscriptions,
     );
 
-    let worker : Worker | undefined;
     let compiler: Compiler | undefined;
-    let workerConfig: any;
     let runCompiler = async function() {
         // Start from a blank slate.
         if (compiler) {
             compiler.kill();
             compiler = undefined;
-        }
-        if (worker) {
-            worker.terminate();
-            worker = undefined;
         }
 
         // Compile binary.
@@ -197,42 +189,10 @@ async function createPanel(context: vscode.ExtensionContext, panel: vscode.Webvi
             return;
         }
 
-        // Start a new worker that will be running the compiled code.
-        let workerError = '';
-        let workerPath = path.join(context.extensionPath, 'preview', 'playground', 'worker', 'webworker.js');
-        worker = new Worker(workerPath, {
-            stderr: true, // capture errors and such
-        });
-        worker.addListener('message', panelPostMessage);
-        worker.stderr.addListener('data', (chunk) => {
-            // Make sure that if an error occurs in the worker, that it is
-            // displayed to the user. Not great, but the alternative is to hang
-            // with no indication what's going on which is worse.
-            workerError += chunk.toString();
-            panelPostMessage({
-                type: 'error',
-                message: workerError,
-            });
-        });
-        worker.addListener('error', err => {
-            // This can happen when the web worker source can't be found.
-            // Shouldn't happen, but to be sure, send it to the UI.
-            panelPostMessage({
-                type: 'error',
-                message: err.name + '\n' + err.message,
-            });
-        });
-
         // Send the file to the worker for execution.
-        worker.postMessage({
-            type: 'start',
+        panelPostMessage({
+            type: 'run',
             binary: binary,
-            config: workerConfig,
-        });
-
-        // Request an initial update.
-        worker.postMessage({
-            type: 'getUpdate',
         });
     };
 }

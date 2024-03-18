@@ -8,10 +8,9 @@
     <link rel="stylesheet" href="simulator.css"/>
     <link rel="stylesheet" href="../webview.css"/>
     <meta http-equiv="Content-Security-Policy" content="{CSP}"/>
-    <script src="simulator.js" defer></script>
-    <script src="../webview.js" defer></script>
+    <script type="module" src="../webview.js" defer></script>
   </head>
-  <body>
+  <body id="schematic-root">
     <div id="schematic-buttons">
       <button id="schematic-button-pause" class="codicon schematic-button" title="Pause/resume the simulation">&#xead1;</button>
     </div>
