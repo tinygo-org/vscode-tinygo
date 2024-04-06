@@ -111,7 +111,7 @@ async function createPanel(context: vscode.ExtensionContext, panel: vscode.Webvi
     // Also, the worker shouldn't be sending invalid styles anyway (if the
     // worker is hijacked, security is breached anyway).
     // More information: https://stackoverflow.com/questions/30653698/#31759553
-    html = html.replace('{CSP}', `default-src 'none'; script-src ${panel.webview.cspSource} blob: 'unsafe-eval'; style-src ${panel.webview.cspSource} 'unsafe-inline'; connect-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}`);
+    html = html.replace('{CSP}', `default-src ${panel.webview.cspSource}; script-src ${panel.webview.cspSource} blob: 'unsafe-eval'; style-src ${panel.webview.cspSource} 'unsafe-inline'; connect-src ${panel.webview.cspSource}`);
     panel.webview.html = html;
 
     // Wrapper postMessage that ignores messages after the panel is disposed.

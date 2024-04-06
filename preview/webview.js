@@ -59,8 +59,12 @@ async function init(state) {
 
     // Initialize the schematic.
     let root = document.querySelector('#schematic-root');
-    simulator = new Simulator(blobUrl, saveState);
-    await simulator.init(root, state)
+    simulator = new Simulator({
+        root: root,
+        workerURL: blobUrl,
+        saveState: saveState,
+    });
+    await simulator.setState(state)
     vscode.postMessage({
         type: 'ready',
     });

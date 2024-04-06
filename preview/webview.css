@@ -8,7 +8,7 @@ body {
     flex-direction: column;
 }
 
-#schematic {
+.schematic {
     height: 100%;
     flex-grow: 1;
 }

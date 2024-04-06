@@ -10,32 +10,36 @@
     <meta http-equiv="Content-Security-Policy" content="{CSP}"/>
     <script type="module" src="../webview.js" defer></script>
   </head>
-  <body id="schematic-root">
-    <div id="schematic-buttons">
-      <button id="schematic-button-pause" class="codicon schematic-button" title="Pause/resume the simulation">&#xead1;</button>
+  <body id="schematic-root" class="simulator">
+    <div class="schematic-buttons">
+      <button class="schematic-button-pause schematic-button" title="Pause/resume the simulation">
+        <!-- only one of these two images is visible at a time -->
+        <img src="resources/codicon/debug-pause.svg" class="button-img-pause"/>
+        <img src="resources/codicon/play.svg" class="button-img-play"/>
+      </button>
     </div>
-    <svg id="schematic">
-      <g id="schematic-wrapper" style="transform: translate(50%, 50%)">
-        <g id="schematic-parts"></g>
-        <g id="schematic-wires"></g>
+    <svg class="schematic">
+      <g class="schematic-wrapper" style="transform: translate(50%, 50%)">
+        <g class="schematic-parts"></g>
+        <g class="schematic-wires"></g>
       </g>
     </svg>
-    <div id="panels">
+    <div class="panels">
       <div class="tabbar">
-        <span class="tab active" data-for="#terminal-box"><a>Terminal</a></span>
-        <span class="tab" data-for="#properties"><a>Properties</a></span>
-        <span class="tab" data-for="#add"><a>Add</a></span>
+        <span class="tab active panel-tab-terminal"><a>Terminal</a></span>
+        <span class="tab"><a>Properties</a></span>
+        <span class="tab"><a>Add</a></span>
       </div>
-      <div class="tabcontent active" id="terminal-box">
-        <textarea id="terminal" readonly></textarea>
+      <div class="tabcontent active terminal-box">
+        <textarea class="terminal" readonly></textarea>
       </div>
-      <div class="tabcontent" id="properties">
+      <div class="tabcontent panel-properties">
         <div class="content"></div>
       </div>
-      <div class="tabcontent" id="add">
+      <div class="tabcontent panel-add">
         Loading...
       </div>
     </div>
-    <div id="schematic-tooltip"></div>
+    <div class="schematic-tooltip"></div>
   </body>
 </html>
