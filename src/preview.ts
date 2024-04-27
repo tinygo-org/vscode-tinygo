@@ -9,6 +9,7 @@ let boards = [
     'arduino-nano33',
     'circuitplay-bluefruit',
     'circuitplay-express',
+    'gopher-badge',
     'hifive1b',
     'microbit',
     'pinetime',
