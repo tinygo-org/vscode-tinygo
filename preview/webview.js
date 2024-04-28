@@ -61,7 +61,7 @@ async function init(state) {
     let root = document.querySelector('#schematic-root');
     simulator = new Simulator({
         root: root,
-        workerURL: blobUrl,
+        schematicURL: blobUrl,
         saveState: saveState,
     });
     await simulator.setState(state)
