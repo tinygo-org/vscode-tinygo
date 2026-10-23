@@ -97,6 +97,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		envVars.GOARCH = goarch ? goarch: undefined;
 		envVars.GOROOT = goroot ? goroot: undefined;
 		envVars.GOFLAGS = buildTags ? "-tags="+(buildTags.split(' ').join(',')) : undefined;
+		// Baremetal targets report GOARCH=arm. Enable cgo for them so gopls
+		// does not drop files that import "C".
+		envVars.CGO_ENABLED = goarch == 'arm' ? '1' : undefined;
 		config.update('toolsEnvVars', envVars, vscode.ConfigurationTarget.Workspace);
 
 		// Update status bar.
