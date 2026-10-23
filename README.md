@@ -14,10 +14,15 @@ Right now the only feature this extension supports is setting the right environm
         "GOOS": "linux",
         "GOARCH": "arm",
         "GOROOT": "/home/user/.cache/tinygo/goroot-go1.14-f930d5b5f36579e8cbd1c139012b3d702281417fb6bdf67303c4697195b9ef1f-syscall",
-        "GOFLAGS": "-tags=cortexm,baremetal,linux,arm,nrf51822,nrf51,nrf,microbit,tinygo,gc.conservative,scheduler.tasks"
+        "GOFLAGS": "-tags=cortexm,baremetal,linux,arm,nrf51822,nrf51,nrf,microbit,tinygo,gc.conservative,scheduler.tasks",
+        "CGO_ENABLED": "1",
+        "CGO_CFLAGS_ALLOW": "-fno-short-enums",
+        "CC": "/home/user/.config/Code/User/globalStorage/tinygo.vscode-tinygo/gopls-cc.sh"
     }
 }
 ```
+
+For baremetal targets it also enables cgo, so gopls can load packages that use `import "C"`. The `CC` script uses the clang and libc headers that ship with TinyGo. It is only used by gopls to read C types and is never used to build code. It is not set on Windows.
 
 To use it, click on the `TinyGo` status bar element at the bottom of the screen and select a target. Alternatively, you could open the [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette) and search for `TinyGo target`.
 
