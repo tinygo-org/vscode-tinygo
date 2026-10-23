@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as cp from 'child_process';
 import * as util from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as preview from './preview';
 
 let statusbarItem: vscode.StatusBarItem;
@@ -89,6 +91,14 @@ export async function activate(context: vscode.ExtensionContext) {
 			}
 		}
 
+		// Baremetal targets report GOARCH=arm. Enable cgo for them so gopls
+		// does not drop files that import "C".
+		const cgo = goarch == 'arm';
+		let cc: string | undefined;
+		if (cgo && process.platform != 'win32') {
+			cc = await writeCgoWrapper(context);
+		}
+
 		// Update the configuration in the current workspace.
 		// This will automatically reload gopls.
 		const config = vscode.workspace.getConfiguration('go', null);
@@ -97,9 +107,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		envVars.GOARCH = goarch ? goarch: undefined;
 		envVars.GOROOT = goroot ? goroot: undefined;
 		envVars.GOFLAGS = buildTags ? "-tags="+(buildTags.split(' ').join(',')) : undefined;
-		// Baremetal targets report GOARCH=arm. Enable cgo for them so gopls
-		// does not drop files that import "C".
-		envVars.CGO_ENABLED = goarch == 'arm' ? '1' : undefined;
+		envVars.CGO_ENABLED = cgo ? '1' : undefined;
+		envVars.CGO_CFLAGS_ALLOW = cgo ? '-fno-short-enums' : undefined;
+		envVars.CC = cc;
 		config.update('toolsEnvVars', envVars, vscode.ConfigurationTarget.Workspace);
 
 		// Update status bar.
@@ -161,6 +171,77 @@ async function readTargetList(context: vscode.ExtensionContext): Promise<string[
 	}
 
 	return targets;
+}
+
+// writeCgoWrapper writes a C compiler script for gopls and returns its path.
+// It is only used to load cgo types in the editor, never to build code.
+async function writeCgoWrapper(context: vscode.ExtensionContext): Promise<string | undefined> {
+	const execFile = util.promisify(cp.execFile);
+	let root: string;
+	try {
+		const {stdout} = await execFile('tinygo', ['env', 'TINYGOROOT']);
+		root = stdout.trim();
+	} catch(err) {
+		return undefined;
+	}
+
+	const dir = context.globalStoragePath;
+	const stubDir = path.join(dir, 'include');
+	fs.mkdirSync(stubDir, {recursive: true});
+	// TinyGo generates picolibc.h per target at build time.
+	fs.writeFileSync(path.join(stubDir, 'picolibc.h'), '');
+
+	// Target ARM because Go's debug/elf can't read riscv32 cgo objects, and
+	// use armv7 because cmd/go passes -marm when GOARCH=arm.
+	let flags = ['--target=armv7-none-eabi', '-fno-short-enums', '-Wno-unused-command-line-argument'];
+	const resourceDir = findClangResourceDir(root);
+	if (resourceDir) {
+		flags.push('-resource-dir', resourceDir);
+	}
+	flags.push('-nostdlibinc', '-isystem', stubDir);
+	for (const inc of ['lib/picolibc/libc/include', 'lib/picolibc/newlib/libc/include']) {
+		if (fs.existsSync(path.join(root, inc))) {
+			flags.push('-isystem', path.join(root, inc));
+		}
+	}
+
+	// Package .c files are replaced with an empty input because they may
+	// contain target specific assembly. Files cgo generates use absolute paths.
+	const script = `#!/bin/sh
+for a do
+	shift
+	case $a in
+	*/*) set -- "$@" "$a" ;;
+	*.c) set -- "$@" -x c /dev/null ;;
+	*) set -- "$@" "$a" ;;
+	esac
+done
+exec tinygo clang ${flags.map(shellQuote).join(' ')} "$@"
+`;
+	const file = path.join(dir, 'gopls-cc.sh');
+	fs.writeFileSync(file, script, {mode: 0o755});
+	return file;
+}
+
+// findClangResourceDir returns the clang resource dir that TinyGo uses, or
+// undefined if TinyGo uses a system clang that knows its own.
+function findClangResourceDir(root: string): string | undefined {
+	const release = path.join(root, 'lib', 'clang');
+	if (fs.existsSync(release)) {
+		return release;
+	}
+	const build = path.join(root, 'llvm-build', 'lib', 'clang');
+	if (fs.existsSync(build)) {
+		const versions = fs.readdirSync(build);
+		if (versions.length > 0) {
+			return path.join(build, versions[0]);
+		}
+	}
+	return undefined;
+}
+
+function shellQuote(s: string): string {
+	return "'" + s.replace(/'/g, "'\\''") + "'";
 }
 
 // Look for the first occurence of the value in values and move it to the front
